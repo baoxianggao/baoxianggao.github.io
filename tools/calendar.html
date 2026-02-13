@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BaoXiangGao Tools - 全屏日历</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.css" />
+    <link rel="stylesheet" href="/assets/css/tokens.css" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages/calendar.css" />
+  </head>
+  <body class="page-enter">
+    <main class="fullscreen-wrap">
+      <header class="page-header panel">
+        <div class="panel-inner" style="width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+          <div class="brand">
+            <span class="brand-kicker">Full Screen Calendar</span>
+            <h1 class="brand-title" style="font-size: clamp(1.3rem, 2vw, 2rem)">农历 + 法定节假日日历</h1>
+          </div>
+          <div class="toolbar">
+            <a class="btn" href="/index.html">返回首页</a>
+            <button class="btn" id="btnSyncHoliday">同步节假日</button>
+            <span class="pill" id="holidaySyncStatus">内置数据</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="calendar-shell fill-card">
+        <article class="panel calendar-main">
+          <div class="panel-inner" style="height: 100%">
+            <div id="calendar"></div>
+          </div>
+        </article>
+
+        <aside class="panel side-panel">
+          <div class="panel-inner" style="display: flex; flex-direction: column; min-height: 0; gap: 10px">
+            <h2 class="panel-title">日期详情</h2>
+            <div id="selectedDateLabel" class="muted">请选择日期</div>
+            <div id="selectedHoliday" class="notice">暂无节假日信息</div>
+            <h3 class="panel-title" style="font-size: 0.95rem">当日任务</h3>
+            <ul id="dayTaskList" class="day-task-list"></ul>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.min.js"></script>
+    <script type="module" src="/assets/js/pages/calendar.js"></script>
+  </body>
+</html>

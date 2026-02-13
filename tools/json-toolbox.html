@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BaoXiangGao Tools - JSON 工具箱</title>
+    <link rel="stylesheet" href="/assets/css/tokens.css" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages/json-toolbox.css" />
+  </head>
+  <body class="page-enter">
+    <main class="fullscreen-wrap">
+      <header class="page-header panel">
+        <div class="panel-inner" style="width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+          <div class="brand">
+            <span class="brand-kicker">Utility</span>
+            <h1 class="brand-title" style="font-size: clamp(1.3rem, 2vw, 2rem)">JSON 工具箱</h1>
+          </div>
+          <div class="toolbar">
+            <a class="btn" href="/index.html">返回首页</a>
+            <button class="btn" id="btnFormatJson">格式化</button>
+            <button class="btn" id="btnMinifyJson">压缩</button>
+            <button class="btn" id="btnValidateJson">校验</button>
+            <button class="btn" id="btnJsonToYaml">JSON→YAML</button>
+            <button class="btn" id="btnYamlToJson">YAML→JSON</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="json-shell fill-card">
+        <article class="panel">
+          <div class="panel-inner">
+            <h2 class="panel-title">输入</h2>
+            <textarea id="jsonInput" class="textarea" spellcheck="false"></textarea>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="panel-inner">
+            <h2 class="panel-title">输出</h2>
+            <textarea id="jsonOutput" class="textarea" spellcheck="false"></textarea>
+            <div class="result-meta" id="jsonMeta" style="margin-top: 8px"></div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <script type="module" src="/assets/js/pages/json-toolbox.js"></script>
+  </body>
+</html>

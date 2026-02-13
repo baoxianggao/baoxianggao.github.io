@@ -1,0 +1,26 @@
+.json-shell {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.json-shell .textarea {
+  min-height: calc(100vh - 250px);
+}
+
+.result-meta {
+  color: var(--text-sub);
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .json-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .json-shell .textarea {
+    min-height: 260px;
+  }
+}

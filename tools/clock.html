@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BaoXiangGao Tools - 全屏时钟</title>
+    <link rel="stylesheet" href="/assets/css/tokens.css" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages/clock.css" />
+  </head>
+  <body class="page-enter">
+    <main class="fullscreen-wrap">
+      <header class="page-header panel">
+        <div class="panel-inner" style="width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+          <div class="brand">
+            <span class="brand-kicker">Full Screen Clock</span>
+            <h1 class="brand-title" style="font-size: clamp(1.3rem, 2vw, 2rem)">高精度时钟与倒计时</h1>
+          </div>
+          <div class="toolbar">
+            <a class="btn" href="/index.html">返回首页</a>
+            <span class="pill"><span class="status-dot pulse"></span><span id="syncState">同步中...</span></span>
+          </div>
+        </div>
+      </header>
+
+      <section class="clock-stage fill-card">
+        <article class="panel clock-main">
+          <div class="time-wrap">
+            <div class="time-main" id="timeMain">--:--:--<span class="millisecond">.---</span></div>
+            <div class="time-sub" id="timeSub">--</div>
+          </div>
+        </article>
+
+        <aside class="panel">
+          <div class="panel-inner" style="display: flex; flex-direction: column; gap: 10px">
+            <h2 class="panel-title">倒计时</h2>
+            <div class="countdown-display" id="countdownDisplay">00:00:00</div>
+            <div class="alarm-msg" id="alarmMsg"></div>
+
+            <label>目标时间
+              <input type="datetime-local" class="input" id="targetTimeInput" />
+            </label>
+
+            <div class="toolbar">
+              <button class="btn" data-preset="5">5 分钟</button>
+              <button class="btn" data-preset="15">15 分钟</button>
+              <button class="btn" data-preset="30">30 分钟</button>
+              <button class="btn" data-preset="60">60 分钟</button>
+            </div>
+
+            <div class="toolbar">
+              <button class="btn btn-primary" id="countdownStart">开始</button>
+              <button class="btn" id="countdownPause">暂停/继续</button>
+              <button class="btn btn-danger" id="countdownReset">重置</button>
+            </div>
+
+            <label class="pill" style="align-self: flex-start">
+              <input type="checkbox" id="muteToggle" />
+              静音
+            </label>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="/assets/js/pages/clock.js"></script>
+  </body>
+</html>

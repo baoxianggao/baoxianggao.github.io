@@ -1,7 +1,112 @@
 <!DOCTYPE html>
-<html>
-<body>
-<h1>Hello World</h1>
-<p>BaoXiangGao No 1!</p>
-</body>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BaoXiangGao Tools - 主页</title>
+    <link rel="stylesheet" href="/assets/css/tokens.css" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages/home.css" />
+  </head>
+  <body class="page-enter">
+    <main class="app-shell">
+      <header class="page-header">
+        <div class="brand">
+          <span class="brand-kicker">Personal Utility Hub</span>
+          <h1 class="brand-title">BaoXiangGao Tools</h1>
+          <p class="brand-desc">统一入口管理日历、时钟、编辑、待办与开发实用工具。全部数据本地存储，跨工具自动联动。</p>
+        </div>
+        <div class="toolbar">
+          <a class="btn" href="/tools/todo.html">新增待办</a>
+          <a class="btn" href="/tools/editor.html">打开编辑器</a>
+          <a class="btn btn-primary" href="/tools/clock.html">启动倒计时</a>
+        </div>
+      </header>
+
+      <section class="panel hero-panel">
+        <div class="panel-inner">
+          <div class="tool-grid" id="toolGrid"></div>
+        </div>
+      </section>
+
+      <section class="grid-home" style="margin-top: 16px">
+        <div class="stack">
+          <article class="panel">
+            <div class="panel-inner">
+              <h2 class="panel-title">近期日程</h2>
+              <p class="muted">未来 72 小时任务与日程汇总</p>
+              <ul id="agendaList" class="agenda-list" aria-live="polite"></ul>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <h2 class="panel-title">快捷操作</h2>
+              <div class="quick-actions">
+                <button class="btn btn-primary" id="quickTodo">新建 TODO</button>
+                <button class="btn" id="quickClock">30 分钟倒计时</button>
+                <button class="btn" id="quickEditor">新建文档</button>
+                <button class="btn btn-ghost" id="refreshAll">刷新全部摘要</button>
+              </div>
+              <p class="notice" style="margin-top: 12px">跨工具联动已启用：TODO 新增后会自动同步到首页与日历。</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="stack">
+          <article class="panel">
+            <div class="panel-inner">
+              <h2 class="panel-title">天气</h2>
+              <div id="weatherWrap">
+                <div class="weather-main">
+                  <div>
+                    <div class="weather-temp" id="weatherTemp">--°</div>
+                    <div class="muted" id="weatherText">天气加载中...</div>
+                  </div>
+                  <div class="weather-meta" id="weatherMeta">定位中...</div>
+                </div>
+              </div>
+              <div class="toolbar" style="margin-top: 10px">
+                <button class="btn" id="weatherRefresh">刷新天气</button>
+                <input id="weatherCityInput" class="input" placeholder="输入城市，如 Shanghai" style="max-width: 180px" />
+                <button class="btn" id="weatherCityBtn">按城市查询</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <h2 class="panel-title">今日迷你日历</h2>
+              <div class="muted" id="miniCalendarTitle"></div>
+              <div id="miniCalendar" class="mini-cal" style="margin-top: 10px"></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <h2 class="panel-title">状态摘要</h2>
+              <div class="stat-row">
+                <div class="stat-box">
+                  待办总数
+                  <strong id="statTodoAll">0</strong>
+                </div>
+                <div class="stat-box">
+                  今日截止
+                  <strong id="statTodoToday">0</strong>
+                </div>
+                <div class="stat-box">
+                  进行中
+                  <strong id="statTodoDoing">0</strong>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/assets/js/pages/home.js"></script>
+  </body>
 </html>

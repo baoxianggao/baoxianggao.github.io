@@ -1,0 +1,230 @@
+[
+  {
+    "date": "2025-12-31",
+    "type": "holiday",
+    "name": "元旦",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-01-01",
+    "type": "holiday",
+    "name": "元旦",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-01-02",
+    "type": "holiday",
+    "name": "元旦",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-01-04",
+    "type": "workday",
+    "name": "元旦调休",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-02-14",
+    "type": "workday",
+    "name": "春节调休",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-02-15",
+    "type": "holiday",
+    "name": "春节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-02-16",
+    "type": "holiday",
+    "name": "春节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-02-17",
+    "type": "holiday",
+    "name": "春节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-02-18",
+    "type": "holiday",
+    "name": "春节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-02-19",
+    "type": "holiday",
+    "name": "春节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-02-20",
+    "type": "holiday",
+    "name": "春节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-02-21",
+    "type": "holiday",
+    "name": "春节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-02-22",
+    "type": "holiday",
+    "name": "春节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-02-28",
+    "type": "workday",
+    "name": "春节调休",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-04-03",
+    "type": "holiday",
+    "name": "清明节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-04-04",
+    "type": "holiday",
+    "name": "清明节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-04-05",
+    "type": "holiday",
+    "name": "清明节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-04-30",
+    "type": "holiday",
+    "name": "劳动节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-05-01",
+    "type": "holiday",
+    "name": "劳动节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-05-02",
+    "type": "holiday",
+    "name": "劳动节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-05-03",
+    "type": "holiday",
+    "name": "劳动节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-05-04",
+    "type": "holiday",
+    "name": "劳动节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-05-09",
+    "type": "workday",
+    "name": "劳动节调休",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-06-18",
+    "type": "holiday",
+    "name": "端午节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-06-19",
+    "type": "holiday",
+    "name": "端午节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-06-20",
+    "type": "holiday",
+    "name": "端午节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-09-20",
+    "type": "workday",
+    "name": "国庆节调休",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-09-24",
+    "type": "holiday",
+    "name": "中秋节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-09-25",
+    "type": "holiday",
+    "name": "中秋节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-09-26",
+    "type": "holiday",
+    "name": "中秋节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-09-30",
+    "type": "holiday",
+    "name": "国庆节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-10-01",
+    "type": "holiday",
+    "name": "国庆节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-10-02",
+    "type": "holiday",
+    "name": "国庆节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-10-03",
+    "type": "holiday",
+    "name": "国庆节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-10-04",
+    "type": "holiday",
+    "name": "国庆节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-10-05",
+    "type": "holiday",
+    "name": "国庆节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-10-06",
+    "type": "holiday",
+    "name": "国庆节",
+    "source": "builtin"
+  },
+  {
+    "date": "2026-10-10",
+    "type": "workday",
+    "name": "国庆节调休",
+    "source": "builtin"
+  }
+]

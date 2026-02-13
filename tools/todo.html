@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BaoXiangGao Tools - TodoList</title>
+    <link rel="stylesheet" href="/assets/css/tokens.css" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages/todo.css" />
+  </head>
+  <body class="page-enter">
+    <main class="fullscreen-wrap">
+      <header class="page-header panel">
+        <div class="panel-inner" style="width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+          <div class="brand">
+            <span class="brand-kicker">Task Management</span>
+            <h1 class="brand-title" style="font-size: clamp(1.3rem, 2vw, 2rem)">TodoList（日/小时/周/月）</h1>
+          </div>
+          <div class="toolbar">
+            <a class="btn" href="/index.html">返回首页</a>
+            <select class="select" id="todoFilterSelect" style="min-width: 180px">
+              <option value="today">今天</option>
+              <option value="24h">未来24小时</option>
+              <option value="week">本周</option>
+              <option value="month">本月</option>
+              <option value="done">已完成</option>
+              <option value="expired">已过期</option>
+              <option value="all">全部</option>
+            </select>
+          </div>
+        </div>
+      </header>
+
+      <section class="todo-shell fill-card">
+        <aside class="panel">
+          <div class="panel-inner">
+            <h2 class="panel-title">新建任务</h2>
+            <form id="todoForm" class="inline-form">
+              <input class="input" id="todoTitle" placeholder="任务标题" required />
+              <textarea class="textarea" id="todoNote" placeholder="任务备注"></textarea>
+              <div class="inline-2">
+                <label>截止时间
+                  <input type="datetime-local" id="todoDueAt" class="input" required />
+                </label>
+                <label>重复规则
+                  <select id="todoRepeat" class="select">
+                    <option value="none">不重复</option>
+                    <option value="hourly">每小时</option>
+                    <option value="daily">每天</option>
+                    <option value="weekly">每周</option>
+                    <option value="monthly">每月</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="inline-2">
+                <label>优先级
+                  <select id="todoPriority" class="select">
+                    <option value="high">高</option>
+                    <option value="medium" selected>中</option>
+                    <option value="low">低</option>
+                  </select>
+                </label>
+                <label>标签（逗号分隔）
+                  <input id="todoTags" class="input" placeholder="工作,学习" />
+                </label>
+              </div>
+
+              <button class="btn btn-primary" type="submit">添加任务</button>
+            </form>
+          </div>
+        </aside>
+
+        <article class="panel">
+          <div class="panel-inner" style="display: flex; flex-direction: column; gap: 12px; min-height: 0">
+            <div class="stat-row">
+              <div class="stat-box">任务总数<strong id="todoStatAll">0</strong></div>
+              <div class="stat-box">进行中<strong id="todoStatDoing">0</strong></div>
+              <div class="stat-box">已完成<strong id="todoStatDone">0</strong></div>
+            </div>
+            <ul id="todoList" class="todo-list" aria-live="polite"></ul>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script type="module" src="/assets/js/pages/todo.js"></script>
+  </body>
+</html>

@@ -1,0 +1,32 @@
+.md-pdf-shell {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+}
+
+#mdPdfPreview {
+  min-height: 0;
+  overflow: auto;
+  padding: 20px;
+}
+
+.pdf-export-wrap {
+  background: #fff;
+  color: #101010;
+  padding: 24px;
+  border-radius: 6px;
+}
+
+.pdf-export-wrap h1,
+.pdf-export-wrap h2,
+.pdf-export-wrap h3 {
+  color: #0b1629;
+}
+
+.pdf-export-wrap pre {
+  background: #f2f4f8;
+  padding: 12px;
+  border-radius: 6px;
+}

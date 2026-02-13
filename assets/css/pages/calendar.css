@@ -1,0 +1,117 @@
+.calendar-shell {
+  display: grid;
+  grid-template-columns: 1fr 330px;
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+}
+
+.calendar-main {
+  min-height: 0;
+}
+
+#calendar {
+  height: calc(100vh - 120px);
+}
+
+.fc,
+.fc .fc-toolbar-title,
+.fc .fc-button {
+  font-family: var(--font-ui);
+}
+
+.fc .fc-button {
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  background: rgba(24, 33, 53, 0.84);
+}
+
+.fc .fc-button-primary:not(:disabled):active,
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button:hover {
+  background: rgba(35, 49, 75, 0.95);
+  border-color: rgba(79, 227, 209, 0.65);
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th,
+.fc-theme-standard .fc-scrollgrid {
+  border-color: rgba(168, 193, 229, 0.2);
+}
+
+.fc .fc-daygrid-day-frame {
+  min-height: 98px;
+}
+
+.day-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.day-solar {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.day-lunar {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.day-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.day-tag {
+  font-size: 10px;
+  border-radius: 6px;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  line-height: 1.2;
+}
+
+.day-tag.holiday {
+  border-color: rgba(255, 107, 107, 0.45);
+  color: #ffd4d4;
+}
+
+.day-tag.workday {
+  border-color: rgba(246, 188, 94, 0.45);
+  color: #ffe2b5;
+}
+
+.side-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.day-task-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.day-task-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px;
+  background: rgba(14, 21, 35, 0.72);
+}
+
+@media (max-width: 1200px) {
+  .calendar-shell {
+    grid-template-columns: 1fr;
+  }
+
+  #calendar {
+    height: calc(100vh - 250px);
+  }
+}

@@ -1,0 +1,62 @@
+.editor-shell {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+}
+
+.editor-work {
+  min-height: 0;
+}
+
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.editor-pane h3 {
+  margin: 0;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+#editorText {
+  flex: 1;
+  min-height: 0;
+  border: none;
+  border-radius: 0 0 14px 14px;
+  padding: 14px;
+  background: rgba(9, 14, 24, 0.72);
+  font-family: "JetBrains Mono", var(--font-mono);
+}
+
+#editorPreview {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  background: rgba(9, 14, 24, 0.72);
+  border-radius: 0 0 14px 14px;
+}
+
+#editorPreview h1,
+#editorPreview h2,
+#editorPreview h3 {
+  font-family: var(--font-title);
+}
+
+#editorPreview pre {
+  border: 1px solid var(--line);
+  background: rgba(19, 28, 44, 0.92);
+  padding: 10px;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+#editorPreview code {
+  font-family: "JetBrains Mono", var(--font-mono);
+}
