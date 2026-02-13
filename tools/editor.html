@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BaoXiangGao Tools - 文本编辑器</title>
+    <title id="editorPageTitle">BaoXiangGao Tools - 文本编辑器</title>
     <link rel="stylesheet" href="/assets/css/tokens.css" />
     <link rel="stylesheet" href="/assets/css/base.css" />
     <link rel="stylesheet" href="/assets/css/layout.css" />
@@ -16,11 +16,22 @@
         <div class="panel-inner header-shell">
           <div class="brand">
             <span class="brand-kicker">Markdown Studio</span>
-            <h1 class="brand-title" style="font-size: clamp(1.3rem, 2vw, 2rem)">文本/代码/图片编辑器</h1>
+            <h1 class="brand-title" id="editorBrandTitle" style="font-size: clamp(1.3rem, 2vw, 2rem)">文本/代码/图片编辑器</h1>
           </div>
           <div class="header-actions">
             <div class="toolbar">
-              <a class="btn" href="/index.html">返回首页</a>
+              <div class="switch-stack">
+                <div class="switch-group" data-lang-switch role="group" aria-label="Language">
+                  <button class="switch-item" type="button" data-value="zh">中</button>
+                  <button class="switch-item" type="button" data-value="en">EN</button>
+                </div>
+                <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
+                  <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
+                  <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
+                  <button class="switch-item theme-mode" type="button" data-value="system">System</button>
+                </div>
+              </div>
+              <a class="btn" id="editorBackHomeBtn" href="/index.html">返回首页</a>
             </div>
             <div class="toolbar">
               <select class="select" id="docSelect"></select>
@@ -46,11 +57,11 @@
         <article class="panel editor-work">
           <div class="split" style="height: 100%">
             <section class="editor-pane">
-              <h3>编辑区（支持拖拽图片）</h3>
+              <h3 id="editorPaneEditTitle">编辑区（支持拖拽图片）</h3>
               <textarea id="editorText" class="textarea" spellcheck="false"></textarea>
             </section>
             <section class="editor-pane">
-              <h3>实时预览</h3>
+              <h3 id="editorPanePreviewTitle">实时预览</h3>
               <div id="editorPreview"></div>
             </section>
           </div>

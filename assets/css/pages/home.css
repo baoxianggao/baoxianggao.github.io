@@ -39,9 +39,9 @@
   border-radius: 10px;
   padding: 6px 0;
   text-align: center;
-  color: var(--text-sub);
+  color: color-mix(in srgb, var(--text-main) 84%, var(--text-sub) 16%);
   font-size: 13px;
-  background: rgba(12, 18, 31, 0.65);
+  background: color-mix(in srgb, var(--card-strong) 86%, transparent);
 }
 
 .mini-cal-day.current {
@@ -66,7 +66,7 @@
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px;
-  background: rgba(14, 22, 35, 0.72);
+  background: color-mix(in srgb, var(--card-strong) 84%, transparent);
 }
 
 .agenda-time {
@@ -93,4 +93,30 @@
 .weather-meta {
   color: var(--text-sub);
   font-size: 13px;
+}
+
+[data-theme="light"] .agenda-item {
+  background: rgba(233, 241, 252, 0.98);
+  border-color: rgba(33, 85, 152, 0.34);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .agenda-time {
+  color: #1f3f64;
+}
+
+[data-theme="light"] .agenda-item .muted {
+  color: #32557f;
+}
+
+[data-theme="light"] .mini-cal-day {
+  background: rgba(234, 242, 252, 0.98);
+  border-color: rgba(33, 85, 152, 0.28);
+  color: #204368;
+}
+
+[data-theme="light"] .mini-cal-day.current {
+  border-color: rgba(16, 159, 151, 0.58);
+  color: #14374f;
+  background: rgba(16, 159, 151, 0.24);
 }

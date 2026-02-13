@@ -15,11 +15,14 @@ import {
   startOfMonth,
   endOfMonth,
   toInputDateTimeValue,
-  formatDateTime,
-  formatDayKey
+  formatDateTime
 } from "../core/date.js";
+import { bootI18n, isEnglish, tr, applyLangToLinks, setText, setPlaceholder } from "../core/i18n.js";
+import { bootTheme } from "../core/theme.js";
 
 initializeDefaults();
+bootTheme();
+bootI18n();
 
 const todoForm = document.getElementById("todoForm");
 const todoListEl = document.getElementById("todoList");
@@ -28,6 +31,8 @@ const todoDueAtInput = document.getElementById("todoDueAt");
 const todoStatAllEl = document.getElementById("todoStatAll");
 const todoStatDoingEl = document.getElementById("todoStatDoing");
 const todoStatDoneEl = document.getElementById("todoStatDone");
+
+const locale = isEnglish() ? "en-US" : "zh-CN";
 
 function escapeHtml(value) {
   return String(value)
@@ -43,6 +48,20 @@ function cycleStatus(status) {
   if (status === "doing") return "done";
   if (status === "done") return "todo";
   return "todo";
+}
+
+function statusLabel(status) {
+  if (status === "doing") return tr("进行中", "In progress");
+  if (status === "done") return tr("已完成", "Done");
+  return tr("待办", "Todo");
+}
+
+function repeatLabel(repeat) {
+  if (repeat === "hourly") return tr("每小时", "Hourly");
+  if (repeat === "daily") return tr("每天", "Daily");
+  if (repeat === "weekly") return tr("每周", "Weekly");
+  if (repeat === "monthly") return tr("每月", "Monthly");
+  return tr("不重复", "No repeat");
 }
 
 function getWindowByFilter(filter) {
@@ -116,30 +135,23 @@ function renderTodoList() {
   );
 
   if (items.length === 0) {
-    todoListEl.innerHTML = '<li class="todo-item"><span class="muted">当前筛选条件下暂无任务</span></li>';
+    todoListEl.innerHTML = `<li class="todo-item"><span class="muted">${tr(
+      "当前筛选条件下暂无任务",
+      "No tasks under current filter"
+    )}</span></li>`;
     return;
   }
 
   todoListEl.innerHTML = items
     .map((item) => {
       const tags = Array.isArray(item.tags) ? item.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("") : "";
-      const statusText = item.status === "doing" ? "进行中" : item.status === "done" ? "已完成" : "待办";
-      const repeatText =
-        item.repeat === "hourly"
-          ? "每小时"
-          : item.repeat === "daily"
-          ? "每天"
-          : item.repeat === "weekly"
-          ? "每周"
-          : item.repeat === "monthly"
-          ? "每月"
-          : "不重复";
-
       return `
       <li class="todo-item" data-id="${item.id}">
         <div>
           <h3 class="todo-title">${escapeHtml(item.title)}</h3>
-          <div class="todo-meta">${formatDateTime(item.occurrenceISO || item.dueAtISO)} · ${statusText} · ${repeatText}</div>
+          <div class="todo-meta">${formatDateTime(item.occurrenceISO || item.dueAtISO, "Asia/Shanghai", locale)} · ${statusLabel(
+            item.status
+          )} · ${repeatLabel(item.repeat)}</div>
           ${item.note ? `<div class="muted" style="margin-top: 6px">${escapeHtml(item.note)}</div>` : ""}
           <div class="chips" style="margin-top: 8px">
             <span class="tag ${item.priority}">${item.priority}</span>
@@ -147,9 +159,9 @@ function renderTodoList() {
           </div>
         </div>
         <div class="todo-actions">
-          <button class="btn" data-action="cycle">下一状态</button>
-          <button class="btn" data-action="archive">归档</button>
-          <button class="btn btn-danger" data-action="delete">删除</button>
+          <button class="btn" data-action="cycle">${tr("下一状态", "Next status")}</button>
+          <button class="btn" data-action="archive">${tr("归档", "Archive")}</button>
+          <button class="btn btn-danger" data-action="delete">${tr("删除", "Delete")}</button>
         </div>
       </li>
     `;
@@ -224,7 +236,69 @@ function bindForm() {
   });
 }
 
+function applyStaticI18n() {
+  document.title = tr("BaoXiangGao Tools - TodoList", "BaoXiangGao Tools - TodoList");
+  setText("#todoBrandTitle", "TodoList（日/小时/周/月）", "TodoList (Day/Hour/Week/Month)");
+  setText("#todoBackHomeBtn", "返回首页", "Back Home");
+  setText("#todoCreateTitle", "新建任务", "Create Task");
+  setPlaceholder("#todoTitle", "任务标题", "Task title");
+  setPlaceholder("#todoNote", "任务备注", "Task note");
+  setText("#todoDueLabel", "截止时间", "Due time");
+  setText("#todoRepeatLabel", "重复规则", "Repeat");
+  setText("#todoPriorityLabel", "优先级", "Priority");
+  setText("#todoTagsLabel", "标签（逗号分隔）", "Tags (comma separated)");
+  setPlaceholder("#todoTags", "工作,学习", "work,study");
+  setText("#todoStatAllLabel", "任务总数", "Total tasks");
+  setText("#todoStatDoingLabel", "进行中", "In progress");
+  setText("#todoStatDoneLabel", "已完成", "Done");
+
+  setText("#todoForm button[type='submit']", "添加任务", "Add Task");
+
+  const filterMap = {
+    today: tr("今天", "Today"),
+    "24h": tr("未来24小时", "Next 24 hours"),
+    week: tr("本周", "This week"),
+    month: tr("本月", "This month"),
+    done: tr("已完成", "Done"),
+    expired: tr("已过期", "Expired"),
+    all: tr("全部", "All")
+  };
+
+  const repeatMap = {
+    none: tr("不重复", "No repeat"),
+    hourly: tr("每小时", "Hourly"),
+    daily: tr("每天", "Daily"),
+    weekly: tr("每周", "Weekly"),
+    monthly: tr("每月", "Monthly")
+  };
+
+  const priorityMap = {
+    high: tr("高", "High"),
+    medium: tr("中", "Medium"),
+    low: tr("低", "Low")
+  };
+
+  document.querySelectorAll("#todoFilterSelect option").forEach((opt) => {
+    if (filterMap[opt.value]) {
+      opt.textContent = filterMap[opt.value];
+    }
+  });
+
+  document.querySelectorAll("#todoRepeat option").forEach((opt) => {
+    if (repeatMap[opt.value]) {
+      opt.textContent = repeatMap[opt.value];
+    }
+  });
+
+  document.querySelectorAll("#todoPriority option").forEach((opt) => {
+    if (priorityMap[opt.value]) {
+      opt.textContent = priorityMap[opt.value];
+    }
+  });
+}
+
 function bootstrap() {
+  applyStaticI18n();
   bindForm();
   bindListActions();
 
@@ -239,6 +313,7 @@ function bootstrap() {
 
   renderTodoList();
   renderStats();
+  applyLangToLinks();
 }
 
 bootstrap();

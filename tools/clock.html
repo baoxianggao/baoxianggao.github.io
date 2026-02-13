@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BaoXiangGao Tools - 全屏时钟</title>
+    <title id="clockPageTitle">BaoXiangGao Tools - 全屏时钟</title>
     <link rel="stylesheet" href="/assets/css/tokens.css" />
     <link rel="stylesheet" href="/assets/css/base.css" />
     <link rel="stylesheet" href="/assets/css/layout.css" />
@@ -16,10 +16,21 @@
         <div class="panel-inner header-shell">
           <div class="brand">
             <span class="brand-kicker">Full Screen Clock</span>
-            <h1 class="brand-title" style="font-size: clamp(1.3rem, 2vw, 2rem)">高精度时钟与倒计时</h1>
+            <h1 class="brand-title" id="clockBrandTitle" style="font-size: clamp(1.3rem, 2vw, 2rem)">高精度时钟与倒计时</h1>
           </div>
           <div class="header-actions-inline">
-            <a class="btn" href="/index.html">返回首页</a>
+            <div class="switch-stack">
+              <div class="switch-group" data-lang-switch role="group" aria-label="Language">
+                <button class="switch-item" type="button" data-value="zh">中</button>
+                <button class="switch-item" type="button" data-value="en">EN</button>
+              </div>
+              <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
+                <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
+                <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
+                <button class="switch-item theme-mode" type="button" data-value="system">System</button>
+              </div>
+            </div>
+            <a class="btn" id="clockBackHomeBtn" href="/index.html">返回首页</a>
             <span class="pill"><span class="status-dot pulse"></span><span id="syncState">同步中...</span></span>
           </div>
         </div>
@@ -28,26 +39,28 @@
       <section class="clock-stage fill-card">
         <article class="panel clock-main">
           <div class="time-wrap">
-            <div class="time-main" id="timeMain">--:--:--<span class="millisecond">.---</span></div>
+            <div class="time-main" id="timeMain">
+              <span class="time-main-clock"><span id="timeHh">--</span>:<span id="timeMm">--</span>:<span id="timeSs">--</span></span><span class="millisecond">.<span id="timeMs">---</span></span>
+            </div>
             <div class="time-sub" id="timeSub">--</div>
           </div>
         </article>
 
         <aside class="panel">
           <div class="panel-inner" style="display: flex; flex-direction: column; gap: 10px">
-            <h2 class="panel-title">倒计时</h2>
+            <h2 class="panel-title" id="clockCountdownTitle">倒计时</h2>
             <div class="countdown-display" id="countdownDisplay">00:00:00</div>
             <div class="alarm-msg" id="alarmMsg"></div>
 
-            <label>目标时间
+            <label><span id="clockTargetLabel">目标时间</span>
               <input type="datetime-local" class="input" id="targetTimeInput" />
             </label>
 
             <div class="toolbar">
-              <button class="btn" data-preset="5">5 分钟</button>
-              <button class="btn" data-preset="15">15 分钟</button>
-              <button class="btn" data-preset="30">30 分钟</button>
-              <button class="btn" data-preset="60">60 分钟</button>
+              <button class="btn" id="preset5Btn" data-preset="5">5 分钟</button>
+              <button class="btn" id="preset15Btn" data-preset="15">15 分钟</button>
+              <button class="btn" id="preset30Btn" data-preset="30">30 分钟</button>
+              <button class="btn" id="preset60Btn" data-preset="60">60 分钟</button>
             </div>
 
             <div class="toolbar">
@@ -58,7 +71,7 @@
 
             <label class="pill" style="align-self: flex-start">
               <input type="checkbox" id="muteToggle" />
-              静音
+              <span id="clockMuteText">静音</span>
             </label>
           </div>
         </aside>

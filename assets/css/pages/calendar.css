@@ -11,7 +11,24 @@
 }
 
 #calendar {
-  height: calc(100vh - 120px);
+  height: calc(100vh - 138px);
+}
+
+.calendar-jump-controls {
+  display: none;
+}
+
+.fc .fc-toolbar .fc-toolbar-chunk .calendar-jump-controls {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+}
+
+.calendar-jump-controls .select {
+  width: 108px;
+  min-width: 108px;
+  padding: 7px 10px;
+  border-radius: 10px;
 }
 
 .fc,
@@ -40,7 +57,17 @@
 }
 
 .fc .fc-daygrid-day-frame {
-  min-height: 98px;
+  min-height: clamp(70px, 7.8vh, 92px);
+}
+
+#calendar.is-month-view .fc-scroller,
+#calendar.is-month-view .fc-scroller-liquid-absolute {
+  overflow-y: hidden !important;
+}
+
+#calendar.is-week-view .fc-scroller,
+#calendar.is-week-view .fc-scroller-liquid-absolute {
+  overflow-y: auto !important;
 }
 
 .day-cell {
@@ -103,7 +130,18 @@
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 9px;
-  background: rgba(14, 21, 35, 0.72);
+  background: color-mix(in srgb, var(--card-strong) 84%, transparent);
+}
+
+[data-theme="light"] .day-task-item {
+  background: rgba(233, 241, 252, 0.98);
+  border-color: rgba(33, 85, 152, 0.34);
+  color: #1d3554;
+}
+
+[data-theme="light"] .day-task-item .muted,
+[data-theme="light"] .day-task-item.muted {
+  color: #32557f;
 }
 
 @media (max-width: 1200px) {
@@ -112,6 +150,21 @@
   }
 
   #calendar {
-    height: calc(100vh - 250px);
+    height: calc(100vh - 300px);
+  }
+
+  .fc .fc-toolbar {
+    gap: 8px;
+  }
+
+  .fc .fc-toolbar .fc-toolbar-chunk .calendar-jump-controls {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .calendar-jump-controls .select {
+    width: 96px;
+    min-width: 96px;
   }
 }

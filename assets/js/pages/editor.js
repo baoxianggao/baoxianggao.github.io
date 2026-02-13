@@ -1,6 +1,10 @@
 import { STORAGE_KEYS, getState, setState, initializeDefaults } from "../core/store.js";
+import { bootI18n, tr, applyLangToLinks, setText, setPlaceholder } from "../core/i18n.js";
+import { bootTheme } from "../core/theme.js";
 
 initializeDefaults();
+bootTheme();
+bootI18n();
 
 const docSelectEl = document.getElementById("docSelect");
 const newDocBtn = document.getElementById("newDocBtn");
@@ -14,8 +18,11 @@ const exportHtmlBtn = document.getElementById("exportHtmlBtn");
 
 const defaultDoc = {
   id: "doc_default",
-  title: "欢迎文档",
-  content: "# 欢迎使用编辑器\n\n- 支持 Markdown 实时预览\n- 可拖拽图片到左侧编辑区\n- 可导出 MD / HTML / TXT\n",
+  title: tr("欢迎文档", "Welcome Document"),
+  content: tr(
+    "# 欢迎使用编辑器\n\n- 支持 Markdown 实时预览\n- 可拖拽图片到左侧编辑区\n- 可导出 MD / HTML / TXT\n",
+    "# Welcome to the Editor\n\n- Live Markdown preview\n- Drag images into the editor pane\n- Export to MD / HTML / TXT\n"
+  ),
   updatedAtISO: new Date().toISOString()
 };
 
@@ -47,7 +54,7 @@ function persistDocs() {
 
 function renderDocSelect() {
   docSelectEl.innerHTML = docs
-    .map((doc) => `<option value="${doc.id}">${escapeHtml(doc.title || "未命名文档")}</option>`)
+    .map((doc) => `<option value="${doc.id}">${escapeHtml(doc.title || tr("未命名文档", "Untitled document"))}</option>`)
     .join("");
   docSelectEl.value = activeDocId;
 }
@@ -77,7 +84,7 @@ function saveActiveDoc() {
 
   docs[index] = {
     ...docs[index],
-    title: docTitleInputEl.value.trim() || "未命名文档",
+    title: docTitleInputEl.value.trim() || tr("未命名文档", "Untitled document"),
     content: editorTextEl.value,
     updatedAtISO: new Date().toISOString()
   };
@@ -90,7 +97,7 @@ function createNewDoc() {
   const id = window.crypto?.randomUUID ? `doc_${window.crypto.randomUUID()}` : `doc_${Date.now()}`;
   const newDoc = {
     id,
-    title: `新文档 ${docs.length + 1}`,
+    title: tr(`新文档 ${docs.length + 1}`, `New Document ${docs.length + 1}`),
     content: "",
     updatedAtISO: new Date().toISOString()
   };
@@ -134,7 +141,7 @@ function bindExport() {
 
   exportHtmlBtn.addEventListener("click", () => {
     const title = docTitleInputEl.value.trim() || "document";
-    const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"/><title>${escapeHtml(
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${escapeHtml(
       title
     )}</title></head><body>${window.marked.parse(editorTextEl.value)}</body></html>`;
     downloadFile(`${title}.html`, html, "text/html;charset=utf-8");
@@ -191,10 +198,26 @@ function bindActions() {
   bindExport();
 }
 
+function applyStaticI18n() {
+  document.title = tr("BaoXiangGao Tools - 文本编辑器", "BaoXiangGao Tools - Editor");
+  setText("#editorBrandTitle", "文本/代码/图片编辑器", "Text / Code / Image Editor");
+  setText("#editorBackHomeBtn", "返回首页", "Back Home");
+  setText("#newDocBtn", "新建文档", "New Document");
+  setText("#saveDocBtn", "保存本地", "Save Local");
+  setPlaceholder("#docTitleInput", "文档标题", "Document title");
+  setText("#exportMdBtn", "导出 MD", "Export MD");
+  setText("#exportTxtBtn", "导出 TXT", "Export TXT");
+  setText("#exportHtmlBtn", "导出 HTML", "Export HTML");
+  setText("#editorPaneEditTitle", "编辑区（支持拖拽图片）", "Editor (drag & drop images)");
+  setText("#editorPanePreviewTitle", "实时预览", "Live Preview");
+}
+
 function bootstrap() {
+  applyStaticI18n();
   renderDocSelect();
   loadDoc(activeDocId);
   bindActions();
+  applyLangToLinks();
 }
 
 bootstrap();

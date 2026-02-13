@@ -1,3 +1,9 @@
+import { bootI18n, tr, applyLangToLinks, setText } from "../core/i18n.js";
+import { bootTheme } from "../core/theme.js";
+
+bootTheme();
+bootI18n();
+
 const baseColorInput = document.getElementById("baseColor");
 const baseColorHexInput = document.getElementById("baseColorHex");
 const baseColorPreview = document.getElementById("baseColorPreview");
@@ -85,8 +91,8 @@ function renderContrast() {
   const fg = normalizeHex(fgColorInput.value) || "#ffffff";
   const bg = normalizeHex(bgColorInput.value) || "#000000";
   const ratio = contrastRatio(fg, bg);
-  const level = ratio >= 7 ? "AAA" : ratio >= 4.5 ? "AA" : "低于AA";
-  contrastInfoEl.textContent = `对比度 ${ratio.toFixed(2)} (${level})`;
+  const level = ratio >= 7 ? "AAA" : ratio >= 4.5 ? "AA" : tr("低于AA", "Below AA");
+  contrastInfoEl.textContent = `${tr("对比度", "Contrast")} ${ratio.toFixed(2)} (${level})`;
 }
 
 function renderBase(baseHex) {
@@ -113,15 +119,26 @@ function updateFromText() {
   renderBase(baseHex);
 }
 
+function applyStaticI18n() {
+  document.title = tr("BaoXiangGao Tools - 颜色工具", "BaoXiangGao Tools - Color Lab");
+  setText("#colorBrandTitle", "颜色实验室", "Color Lab");
+  setText("#colorBackHomeBtn", "返回首页", "Back Home");
+  setText("#copyCssVarsBtn", "复制 CSS Variables", "Copy CSS Variables");
+  setText("#colorBaseTitle", "基础颜色", "Base Color");
+  setText("#colorFgLabel", "前景色", "Foreground");
+  setText("#colorBgLabel", "背景色", "Background");
+  setText("#colorPaletteTitle", "自动调色板", "Auto Palette");
+}
+
 copyCssVarsBtn.addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(cssVarsOutputEl.value);
-    copyCssVarsBtn.textContent = "已复制";
+    copyCssVarsBtn.textContent = tr("已复制", "Copied");
     setTimeout(() => {
-      copyCssVarsBtn.textContent = "复制 CSS Variables";
+      copyCssVarsBtn.textContent = tr("复制 CSS Variables", "Copy CSS Variables");
     }, 1200);
   } catch (_) {
-    copyCssVarsBtn.textContent = "复制失败";
+    copyCssVarsBtn.textContent = tr("复制失败", "Copy failed");
   }
 });
 
@@ -130,5 +147,7 @@ baseColorHexInput.addEventListener("change", updateFromText);
 fgColorInput.addEventListener("input", renderContrast);
 bgColorInput.addEventListener("input", renderContrast);
 
+applyStaticI18n();
 updateFromPicker();
 renderContrast();
+applyLangToLinks();

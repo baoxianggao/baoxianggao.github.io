@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BaoXiangGao Tools - 主页</title>
+    <title id="homePageTitle">BaoXiangGao Tools - 主页</title>
     <link rel="stylesheet" href="/assets/css/tokens.css" />
     <link rel="stylesheet" href="/assets/css/base.css" />
     <link rel="stylesheet" href="/assets/css/layout.css" />
@@ -16,12 +16,23 @@
         <div class="brand">
           <span class="brand-kicker">Personal Utility Hub</span>
           <h1 class="brand-title">BaoXiangGao Tools</h1>
-          <p class="brand-desc">统一入口管理日历、时钟、编辑、待办与开发实用工具。全部数据本地存储，跨工具自动联动。</p>
+          <p class="brand-desc" id="homeBrandDesc">统一入口管理日历、时钟、编辑、待办与开发实用工具。全部数据本地存储，跨工具自动联动。</p>
         </div>
         <div class="toolbar">
-          <a class="btn" href="/tools/todo.html">新增待办</a>
-          <a class="btn" href="/tools/editor.html">打开编辑器</a>
-          <a class="btn btn-primary" href="/tools/clock.html">启动倒计时</a>
+          <div class="switch-stack">
+            <div class="switch-group" data-lang-switch role="group" aria-label="Language">
+              <button class="switch-item" type="button" data-value="zh">中</button>
+              <button class="switch-item" type="button" data-value="en">EN</button>
+            </div>
+            <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
+              <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
+              <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
+              <button class="switch-item theme-mode" type="button" data-value="system">System</button>
+            </div>
+          </div>
+          <a class="btn" id="homeTopTodoBtn" href="/tools/todo.html">新增待办</a>
+          <a class="btn" id="homeTopEditorBtn" href="/tools/editor.html">打开编辑器</a>
+          <a class="btn btn-primary" id="homeTopClockBtn" href="/tools/clock.html">启动倒计时</a>
         </div>
       </header>
 
@@ -35,22 +46,22 @@
         <div class="stack">
           <article class="panel">
             <div class="panel-inner">
-              <h2 class="panel-title">近期日程</h2>
-              <p class="muted">未来 72 小时任务与日程汇总</p>
+              <h2 class="panel-title" id="homeAgendaTitle">近期日程</h2>
+              <p class="muted" id="homeAgendaHint">未来 72 小时任务与日程汇总</p>
               <ul id="agendaList" class="agenda-list" aria-live="polite"></ul>
             </div>
           </article>
 
           <article class="panel">
             <div class="panel-inner">
-              <h2 class="panel-title">快捷操作</h2>
+              <h2 class="panel-title" id="homeQuickTitle">快捷操作</h2>
               <div class="quick-actions">
                 <button class="btn btn-primary" id="quickTodo">新建 TODO</button>
                 <button class="btn" id="quickClock">30 分钟倒计时</button>
                 <button class="btn" id="quickEditor">新建文档</button>
                 <button class="btn btn-ghost" id="refreshAll">刷新全部摘要</button>
               </div>
-              <p class="notice" style="margin-top: 12px">跨工具联动已启用：TODO 新增后会自动同步到首页与日历。</p>
+              <p class="notice" id="homeLinkNotice" style="margin-top: 12px">跨工具联动已启用：TODO 新增后会自动同步到首页与日历。</p>
             </div>
           </article>
         </div>
@@ -58,7 +69,7 @@
         <div class="stack">
           <article class="panel">
             <div class="panel-inner">
-              <h2 class="panel-title">天气</h2>
+              <h2 class="panel-title" id="homeWeatherTitle">天气</h2>
               <div id="weatherWrap">
                 <div class="weather-main">
                   <div>
@@ -78,7 +89,7 @@
 
           <article class="panel">
             <div class="panel-inner">
-              <h2 class="panel-title">今日迷你日历</h2>
+              <h2 class="panel-title" id="homeMiniCalTitle">今日迷你日历</h2>
               <div class="muted" id="miniCalendarTitle"></div>
               <div id="miniCalendar" class="mini-cal" style="margin-top: 10px"></div>
             </div>
@@ -86,18 +97,18 @@
 
           <article class="panel">
             <div class="panel-inner">
-              <h2 class="panel-title">状态摘要</h2>
+              <h2 class="panel-title" id="homeStatTitle">状态摘要</h2>
               <div class="stat-row">
                 <div class="stat-box">
-                  待办总数
+                  <span id="homeStatAllLabel">待办总数</span>
                   <strong id="statTodoAll">0</strong>
                 </div>
                 <div class="stat-box">
-                  今日截止
+                  <span id="homeStatTodayLabel">今日截止</span>
                   <strong id="statTodoToday">0</strong>
                 </div>
                 <div class="stat-box">
-                  进行中
+                  <span id="homeStatDoingLabel">进行中</span>
                   <strong id="statTodoDoing">0</strong>
                 </div>
               </div>

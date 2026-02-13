@@ -1,9 +1,17 @@
 import { STORAGE_KEYS, getState, setState, initializeDefaults } from "../core/store.js";
 import { formatDateTime, toInputDateTimeValue } from "../core/date.js";
+import { bootI18n, tr, applyLangToLinks, setText } from "../core/i18n.js";
+import { bootTheme } from "../core/theme.js";
 
 initializeDefaults();
+bootTheme();
+bootI18n();
 
 const timeMainEl = document.getElementById("timeMain");
+const timeHhEl = document.getElementById("timeHh");
+const timeMmEl = document.getElementById("timeMm");
+const timeSsEl = document.getElementById("timeSs");
+const timeMsEl = document.getElementById("timeMs");
 const timeSubEl = document.getElementById("timeSub");
 const syncStateEl = document.getElementById("syncState");
 const countdownDisplayEl = document.getElementById("countdownDisplay");
@@ -65,7 +73,7 @@ function beep() {
 }
 
 async function syncClockOffset() {
-  syncStateEl.textContent = "同步中...";
+  syncStateEl.textContent = tr("同步中...", "Syncing...");
   try {
     const response = await fetch("https://worldtimeapi.org/api/timezone/Asia/Shanghai");
     if (!response.ok) {
@@ -74,10 +82,10 @@ async function syncClockOffset() {
     const payload = await response.json();
     const serverMs = new Date(payload.datetime).getTime();
     offsetMs = serverMs - Date.now();
-    syncStateEl.textContent = "已同步";
+    syncStateEl.textContent = tr("已同步", "Synced");
   } catch (_) {
     offsetMs = 0;
-    syncStateEl.textContent = "离线本地时间";
+    syncStateEl.textContent = tr("离线本地时间", "Local time (offline)");
   }
 }
 
@@ -87,7 +95,14 @@ function renderClock() {
   const m = pad(now.getMinutes());
   const s = pad(now.getSeconds());
   const ms = pad(now.getMilliseconds(), 3);
-  timeMainEl.innerHTML = `${h}:${m}:${s}<span class="millisecond">.${ms}</span>`;
+  if (timeHhEl && timeMmEl && timeSsEl && timeMsEl) {
+    timeHhEl.textContent = h;
+    timeMmEl.textContent = m;
+    timeSsEl.textContent = s;
+    timeMsEl.textContent = ms;
+  } else {
+    timeMainEl.innerHTML = `${h}:${m}:${s}<span class="millisecond">.${ms}</span>`;
+  }
   timeSubEl.textContent = formatDateTime(now);
   requestAnimationFrame(renderClock);
 }
@@ -102,7 +117,7 @@ function recalcRemaining() {
       countdownState.countdownTargetISO = "";
       persistCountdown();
       countdownDisplayEl.textContent = "00:00:00";
-      alarmMsgEl.textContent = "倒计时结束";
+      alarmMsgEl.textContent = tr("倒计时结束", "Countdown finished");
       beep();
       return;
     }
@@ -115,7 +130,7 @@ function recalcRemaining() {
 function startCountdownByTarget(targetISO) {
   const targetMs = new Date(targetISO).getTime();
   if (Number.isNaN(targetMs) || targetMs <= nowMs()) {
-    alarmMsgEl.textContent = "目标时间必须晚于当前时间";
+    alarmMsgEl.textContent = tr("目标时间必须晚于当前时间", "Target time must be in the future");
     return;
   }
 
@@ -132,7 +147,7 @@ function startCountdownByTarget(targetISO) {
 function handleStart() {
   const inputValue = targetTimeInput.value;
   if (!inputValue) {
-    alarmMsgEl.textContent = "请先选择目标时间";
+    alarmMsgEl.textContent = tr("请先选择目标时间", "Please select a target time");
     return;
   }
   startCountdownByTarget(new Date(inputValue).toISOString());
@@ -145,15 +160,15 @@ function handlePauseResume() {
     countdownState.running = false;
     countdownState.remainingMs = remain;
     countdownState.countdownTargetISO = "";
-    alarmMsgEl.textContent = "已暂停";
+    alarmMsgEl.textContent = tr("已暂停", "Paused");
   } else {
     if (!countdownState.remainingMs || countdownState.remainingMs <= 0) {
-      alarmMsgEl.textContent = "没有可恢复的倒计时";
+      alarmMsgEl.textContent = tr("没有可恢复的倒计时", "No paused countdown to resume");
       return;
     }
     countdownState.running = true;
     countdownState.countdownTargetISO = new Date(nowMs() + countdownState.remainingMs).toISOString();
-    alarmMsgEl.textContent = "继续计时";
+    alarmMsgEl.textContent = tr("继续计时", "Resumed");
   }
   persistCountdown();
 }
@@ -167,7 +182,7 @@ function handleReset() {
   };
   persistCountdown();
   countdownDisplayEl.textContent = "00:00:00";
-  alarmMsgEl.textContent = "已重置";
+  alarmMsgEl.textContent = tr("已重置", "Reset");
 }
 
 function bindPresetButtons() {
@@ -202,23 +217,41 @@ function bootstrapCountdownFromState() {
       countdownState.remainingMs = 0;
       countdownState.countdownTargetISO = "";
       persistCountdown();
-      alarmMsgEl.textContent = "上次倒计时已结束";
+      alarmMsgEl.textContent = tr("上次倒计时已结束", "Previous countdown already ended");
     } else {
       targetTimeInput.value = toInputDateTimeValue(new Date(targetMs));
-      alarmMsgEl.textContent = "已恢复上次倒计时";
+      alarmMsgEl.textContent = tr("已恢复上次倒计时", "Restored previous countdown");
     }
   } else if (countdownState.remainingMs > 0) {
-    alarmMsgEl.textContent = "检测到暂停状态，可点击继续";
+    alarmMsgEl.textContent = tr("检测到暂停状态，可点击继续", "Paused countdown detected, click resume");
   }
 }
 
+function applyStaticI18n() {
+  document.title = tr("BaoXiangGao Tools - 全屏时钟", "BaoXiangGao Tools - Clock");
+  setText("#clockBrandTitle", "高精度时钟与倒计时", "High-Precision Clock & Countdown");
+  setText("#clockBackHomeBtn", "返回首页", "Back Home");
+  setText("#clockCountdownTitle", "倒计时", "Countdown");
+  setText("#clockTargetLabel", "目标时间", "Target Time");
+  setText("#preset5Btn", "5 分钟", "5 min");
+  setText("#preset15Btn", "15 分钟", "15 min");
+  setText("#preset30Btn", "30 分钟", "30 min");
+  setText("#preset60Btn", "60 分钟", "60 min");
+  setText("#countdownStart", "开始", "Start");
+  setText("#countdownPause", "暂停/继续", "Pause/Resume");
+  setText("#countdownReset", "重置", "Reset");
+  setText("#clockMuteText", "静音", "Mute");
+}
+
 async function bootstrap() {
+  applyStaticI18n();
   bindActions();
   await syncClockOffset();
   setInterval(syncClockOffset, 15 * 60 * 1000);
   renderClock();
   bootstrapCountdownFromState();
   setInterval(recalcRemaining, 120);
+  applyLangToLinks();
 }
 
 bootstrap();

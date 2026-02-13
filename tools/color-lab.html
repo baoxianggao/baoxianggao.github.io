@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BaoXiangGao Tools - 颜色工具</title>
+    <title id="colorPageTitle">BaoXiangGao Tools - 颜色工具</title>
     <link rel="stylesheet" href="/assets/css/tokens.css" />
     <link rel="stylesheet" href="/assets/css/base.css" />
     <link rel="stylesheet" href="/assets/css/layout.css" />
@@ -16,10 +16,21 @@
         <div class="panel-inner header-shell">
           <div class="brand">
             <span class="brand-kicker">Utility</span>
-            <h1 class="brand-title" style="font-size: clamp(1.3rem, 2vw, 2rem)">颜色实验室</h1>
+            <h1 class="brand-title" id="colorBrandTitle" style="font-size: clamp(1.3rem, 2vw, 2rem)">颜色实验室</h1>
           </div>
           <div class="header-actions-inline">
-            <a class="btn" href="/index.html">返回首页</a>
+            <div class="switch-stack">
+              <div class="switch-group" data-lang-switch role="group" aria-label="Language">
+                <button class="switch-item" type="button" data-value="zh">中</button>
+                <button class="switch-item" type="button" data-value="en">EN</button>
+              </div>
+              <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
+                <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
+                <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
+                <button class="switch-item theme-mode" type="button" data-value="system">System</button>
+              </div>
+            </div>
+            <a class="btn" id="colorBackHomeBtn" href="/index.html">返回首页</a>
             <button class="btn" id="copyCssVarsBtn">复制 CSS Variables</button>
           </div>
         </div>
@@ -28,14 +39,14 @@
       <section class="color-shell fill-card">
         <aside class="panel">
           <div class="panel-inner" style="display: grid; gap: 10px">
-            <h2 class="panel-title">基础颜色</h2>
+            <h2 class="panel-title" id="colorBaseTitle">基础颜色</h2>
             <input type="color" id="baseColor" value="#4fe3d1" style="height: 46px; width: 100%; border-radius: 10px; border: 1px solid var(--line); background: transparent" />
             <input class="input" id="baseColorHex" value="#4fe3d1" />
             <div class="color-preview" id="baseColorPreview"></div>
-            <label>前景色
+            <label><span id="colorFgLabel">前景色</span>
               <input type="color" id="fgColor" value="#f8fbff" style="height: 40px; width: 100%" />
             </label>
-            <label>背景色
+            <label><span id="colorBgLabel">背景色</span>
               <input type="color" id="bgColor" value="#0f1522" style="height: 40px; width: 100%" />
             </label>
             <div class="notice" id="contrastInfo">对比度 --</div>
@@ -44,7 +55,7 @@
 
         <article class="panel">
           <div class="panel-inner" style="display: grid; gap: 12px">
-            <h2 class="panel-title">自动调色板</h2>
+            <h2 class="panel-title" id="colorPaletteTitle">自动调色板</h2>
             <div id="paletteGrid" class="palette-grid"></div>
             <textarea id="cssVarsOutput" class="textarea" readonly></textarea>
           </div>

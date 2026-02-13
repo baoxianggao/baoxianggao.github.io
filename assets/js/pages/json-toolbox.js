@@ -1,3 +1,9 @@
+import { bootI18n, tr, applyLangToLinks, setText } from "../core/i18n.js";
+import { bootTheme } from "../core/theme.js";
+
+bootTheme();
+bootI18n();
+
 const inputEl = document.getElementById("jsonInput");
 const outputEl = document.getElementById("jsonOutput");
 const metaEl = document.getElementById("jsonMeta");
@@ -8,7 +14,18 @@ const btnValidate = document.getElementById("btnValidateJson");
 const btnJsonToYaml = document.getElementById("btnJsonToYaml");
 const btnYamlToJson = document.getElementById("btnYamlToJson");
 
-inputEl.value = '{\n  "name": "BaoXiangGao",\n  "tools": ["calendar", "clock", "todo"]\n}';
+function applyStaticI18n() {
+  document.title = tr("BaoXiangGao Tools - JSON 工具箱", "BaoXiangGao Tools - JSON Toolbox");
+  setText("#jsonBrandTitle", "JSON 工具箱", "JSON Toolbox");
+  setText("#jsonBackHomeBtn", "返回首页", "Back Home");
+  setText("#btnFormatJson", "格式化", "Format");
+  setText("#btnMinifyJson", "压缩", "Minify");
+  setText("#btnValidateJson", "校验", "Validate");
+  setText("#jsonInputTitle", "输入", "Input");
+  setText("#jsonOutputTitle", "输出", "Output");
+
+  inputEl.value = '{\n  "name": "BaoXiangGao",\n  "tools": ["calendar", "clock", "todo"]\n}';
+}
 
 function setMeta(text) {
   metaEl.textContent = text;
@@ -17,10 +34,12 @@ function setMeta(text) {
 function validateJson() {
   try {
     const parsed = JSON.parse(inputEl.value);
-    setMeta(`JSON 合法 · 键数 ${Object.keys(parsed || {}).length}`);
+    setMeta(
+      tr(`JSON 合法 · 键数 ${Object.keys(parsed || {}).length}`, `Valid JSON · keys ${Object.keys(parsed || {}).length}`)
+    );
     outputEl.value = inputEl.value;
   } catch (error) {
-    setMeta(`JSON 错误: ${error.message}`);
+    setMeta(tr(`JSON 错误: ${error.message}`, `JSON error: ${error.message}`));
   }
 }
 
@@ -28,9 +47,9 @@ btnFormat.addEventListener("click", () => {
   try {
     const parsed = JSON.parse(inputEl.value);
     outputEl.value = JSON.stringify(parsed, null, 2);
-    setMeta("格式化完成");
+    setMeta(tr("格式化完成", "Formatted"));
   } catch (error) {
-    setMeta(`格式化失败: ${error.message}`);
+    setMeta(tr(`格式化失败: ${error.message}`, `Format failed: ${error.message}`));
   }
 });
 
@@ -38,9 +57,9 @@ btnMinify.addEventListener("click", () => {
   try {
     const parsed = JSON.parse(inputEl.value);
     outputEl.value = JSON.stringify(parsed);
-    setMeta("压缩完成");
+    setMeta(tr("压缩完成", "Minified"));
   } catch (error) {
-    setMeta(`压缩失败: ${error.message}`);
+    setMeta(tr(`压缩失败: ${error.message}`, `Minify failed: ${error.message}`));
   }
 });
 
@@ -50,9 +69,9 @@ btnJsonToYaml.addEventListener("click", () => {
   try {
     const parsed = JSON.parse(inputEl.value);
     outputEl.value = window.jsyaml.dump(parsed);
-    setMeta("JSON 转 YAML 成功");
+    setMeta(tr("JSON 转 YAML 成功", "JSON to YAML success"));
   } catch (error) {
-    setMeta(`转换失败: ${error.message}`);
+    setMeta(tr(`转换失败: ${error.message}`, `Convert failed: ${error.message}`));
   }
 });
 
@@ -60,10 +79,12 @@ btnYamlToJson.addEventListener("click", () => {
   try {
     const parsed = window.jsyaml.load(inputEl.value);
     outputEl.value = JSON.stringify(parsed, null, 2);
-    setMeta("YAML 转 JSON 成功");
+    setMeta(tr("YAML 转 JSON 成功", "YAML to JSON success"));
   } catch (error) {
-    setMeta(`转换失败: ${error.message}`);
+    setMeta(tr(`转换失败: ${error.message}`, `Convert failed: ${error.message}`));
   }
 });
 
+applyStaticI18n();
 validateJson();
+applyLangToLinks();

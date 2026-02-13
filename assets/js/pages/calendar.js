@@ -6,8 +6,12 @@ import {
 } from "../core/store.js";
 import { formatDateTime, formatDayKey } from "../core/date.js";
 import { getHolidayMap, syncHolidayFromRemote, readHolidayCache } from "../core/holiday.js";
+import { bootI18n, isEnglish, tr, applyLangToLinks, setText } from "../core/i18n.js";
+import { bootTheme } from "../core/theme.js";
 
 initializeDefaults();
+bootTheme();
+bootI18n();
 
 const calendarEl = document.getElementById("calendar");
 const selectedDateLabelEl = document.getElementById("selectedDateLabel");
@@ -15,6 +19,9 @@ const selectedHolidayEl = document.getElementById("selectedHoliday");
 const dayTaskListEl = document.getElementById("dayTaskList");
 const syncBtn = document.getElementById("btnSyncHoliday");
 const syncStatusEl = document.getElementById("holidaySyncStatus");
+const jumpControlsEl = document.getElementById("calendarJumpControls");
+const jumpYearEl = document.getElementById("jumpYear");
+const jumpMonthEl = document.getElementById("jumpMonth");
 
 let holidayMap = new Map();
 let dayTaskCountMap = new Map();
@@ -70,6 +77,9 @@ function getLunarText(date) {
   }
   try {
     const lunar = window.Lunar.fromDate(date);
+    if (isEnglish()) {
+      return `Lunar ${lunar.getMonth()}-${lunar.getDay()}`;
+    }
     return `${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`;
   } catch (_) {
     return "";
@@ -82,10 +92,10 @@ function renderDayDetail(dateKey) {
 
   const holiday = holidayMap.get(dateKey);
   if (holiday) {
-    const type = holiday.type === "holiday" ? "法定节假日" : "调休工作日";
+    const type = holiday.type === "holiday" ? tr("法定节假日", "Public holiday") : tr("调休工作日", "Adjusted workday");
     selectedHolidayEl.innerHTML = `<strong>${holiday.name}</strong> · ${type}`;
   } else {
-    selectedHolidayEl.textContent = "暂无节假日信息";
+    selectedHolidayEl.textContent = tr("暂无节假日信息", "No holiday info");
   }
 
   const start = new Date(`${dateKey}T00:00:00`);
@@ -95,13 +105,18 @@ function renderDayDetail(dateKey) {
     .sort((a, b) => new Date(a.startISO).getTime() - new Date(b.startISO).getTime());
 
   if (items.length === 0) {
-    dayTaskListEl.innerHTML = '<li class="day-task-item muted">当日暂无任务</li>';
+    dayTaskListEl.innerHTML = `<li class="day-task-item muted">${tr("当日暂无任务", "No tasks on this day")}</li>`;
     return;
   }
 
   dayTaskListEl.innerHTML = items
     .map((item) => {
-      const statusText = item.status === "doing" ? "进行中" : item.status === "done" ? "已完成" : "待办";
+      const statusText =
+        item.status === "doing"
+          ? tr("进行中", "In progress")
+          : item.status === "done"
+          ? tr("已完成", "Done")
+          : tr("待办", "Todo");
       return `
       <li class="day-task-item">
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
@@ -134,14 +149,75 @@ function buildEvents(info, successCallback) {
 async function refreshCalendarDecorations() {
   rebuildTaskCountMap();
   await rebuildHolidayMap();
-  calendar.render();
+  calendar.updateSize();
   renderDayDetail(currentSelectedDay);
+}
+
+function fillJumpYearOptions() {
+  if (!jumpYearEl) {
+    return;
+  }
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  for (let year = currentYear - 8; year <= currentYear + 12; year += 1) {
+    years.push(`<option value="${year}">${isEnglish() ? `${year}` : `${year} 年`}</option>`);
+  }
+  jumpYearEl.innerHTML = years.join("");
+}
+
+function fillJumpMonthOptions() {
+  if (!jumpMonthEl) {
+    return;
+  }
+  jumpMonthEl.innerHTML = Array.from({ length: 12 })
+    .map((_, idx) => {
+      const month = idx + 1;
+      const label = isEnglish()
+        ? new Intl.DateTimeFormat("en-US", { month: "short" }).format(new Date(2026, idx, 1))
+        : `${month} 月`;
+      return `<option value="${month}">${label}</option>`;
+    })
+    .join("");
+}
+
+function syncJumpControlsByDate(dateValue) {
+  if (!jumpYearEl || !jumpMonthEl) {
+    return;
+  }
+  const d = dateValue instanceof Date ? dateValue : new Date(dateValue);
+  jumpYearEl.value = String(d.getFullYear());
+  jumpMonthEl.value = String(d.getMonth() + 1);
+}
+
+function jumpToSelectedYearMonth() {
+  if (!jumpYearEl || !jumpMonthEl) {
+    return;
+  }
+  const year = Number(jumpYearEl.value);
+  const month = Number(jumpMonthEl.value);
+  if (!Number.isFinite(year) || !Number.isFinite(month)) {
+    return;
+  }
+  calendar.gotoDate(new Date(year, month - 1, 1));
+}
+
+function mountJumpControlsToToolbar() {
+  if (!jumpControlsEl) {
+    return;
+  }
+  const rightChunk = calendarEl.querySelector(".fc-toolbar .fc-toolbar-chunk:last-child");
+  if (!rightChunk) {
+    return;
+  }
+  if (jumpControlsEl.parentElement !== rightChunk) {
+    rightChunk.appendChild(jumpControlsEl);
+  }
 }
 
 function createCalendar() {
   calendar = new window.FullCalendar.Calendar(calendarEl, {
     initialView: "dayGridMonth",
-    locale: "zh-cn",
+    locale: isEnglish() ? "en" : "zh-cn",
     height: "100%",
     firstDay: 1,
     headerToolbar: {
@@ -150,14 +226,19 @@ function createCalendar() {
       right: "dayGridMonth,timeGridWeek"
     },
     buttonText: {
-      today: "今天",
-      month: "月",
-      week: "周"
+      today: tr("今天", "Today"),
+      month: tr("月", "Month"),
+      week: tr("周", "Week")
     },
     dayMaxEvents: true,
     datesSet: async (info) => {
       currentViewStart = info.start;
       currentViewEnd = info.end;
+      const isMonthView = info.view.type === "dayGridMonth";
+      calendarEl.classList.toggle("is-month-view", isMonthView);
+      calendarEl.classList.toggle("is-week-view", !isMonthView);
+      mountJumpControlsToToolbar();
+      syncJumpControlsByDate(info.view.currentStart || info.start);
       await refreshCalendarDecorations();
     },
     events: buildEvents,
@@ -176,7 +257,7 @@ function createCalendar() {
         tagHtml.push(`<span class="day-tag ${holiday.type}">${htmlEscape(holiday.name)}</span>`);
       }
       if (taskCount > 0) {
-        tagHtml.push(`<span class="day-tag">${taskCount}任务</span>`);
+        tagHtml.push(`<span class="day-tag">${taskCount}${tr("任务", " tasks")}</span>`);
       }
       return {
         html: `
@@ -198,16 +279,16 @@ function createCalendar() {
 
 async function handleHolidaySync() {
   syncBtn.disabled = true;
-  syncStatusEl.textContent = "同步中...";
+  syncStatusEl.textContent = tr("同步中...", "Syncing...");
 
   const years = getVisibleYears(currentViewStart, currentViewEnd);
   const results = await Promise.allSettled(years.map((year) => syncHolidayFromRemote(year)));
   const okCount = results.filter((r) => r.status === "fulfilled").length;
 
   if (okCount > 0) {
-    syncStatusEl.textContent = `已更新 ${okCount} 年`;
+    syncStatusEl.textContent = isEnglish() ? `Updated ${okCount} year(s)` : `已更新 ${okCount} 年`;
   } else {
-    syncStatusEl.textContent = "同步失败，使用内置";
+    syncStatusEl.textContent = tr("同步失败，使用内置", "Sync failed, using builtin data");
   }
 
   await refreshCalendarDecorations();
@@ -217,14 +298,36 @@ async function handleHolidaySync() {
 function updateSyncStatusFromCache() {
   const cache = readHolidayCache();
   if (cache.updatedAtISO) {
-    syncStatusEl.textContent = `缓存 ${formatDateTime(cache.updatedAtISO)}`;
+    syncStatusEl.textContent = isEnglish()
+      ? `Cached ${formatDateTime(cache.updatedAtISO)}`
+      : `缓存 ${formatDateTime(cache.updatedAtISO)}`;
   } else {
-    syncStatusEl.textContent = "内置数据";
+    syncStatusEl.textContent = tr("内置数据", "Builtin data");
   }
+}
+
+function applyStaticI18n() {
+  document.title = tr("BaoXiangGao Tools - 全屏日历", "BaoXiangGao Tools - Calendar");
+  setText("#calendarBrandTitle", "农历 + 法定节假日日历", "Lunar + China Public Holiday Calendar");
+  setText("#calendarBackHomeBtn", "返回首页", "Back Home");
+  setText("#btnSyncHoliday", "同步节假日", "Sync Holidays");
+  selectedDateLabelEl.textContent = tr("请选择日期", "Select a date");
+  selectedHolidayEl.textContent = tr("暂无节假日信息", "No holiday info");
+  setText("#calendarDetailTitle", "日期详情", "Date Detail");
+  setText("#calendarDayTaskTitle", "当日任务", "Tasks of the Day");
+
+  jumpYearEl?.setAttribute("aria-label", tr("选择年份", "Select year"));
+  jumpMonthEl?.setAttribute("aria-label", tr("选择月份", "Select month"));
 }
 
 function bindActions() {
   syncBtn.addEventListener("click", handleHolidaySync);
+  if (jumpMonthEl) {
+    jumpMonthEl.addEventListener("change", jumpToSelectedYearMonth);
+  }
+  if (jumpYearEl) {
+    jumpYearEl.addEventListener("change", jumpToSelectedYearMonth);
+  }
   onStateChanged((detail) => {
     if (detail.key === STORAGE_KEYS.todos) {
       rebuildTaskCountMap();
@@ -235,11 +338,16 @@ function bindActions() {
 }
 
 async function bootstrap() {
+  applyStaticI18n();
+  fillJumpYearOptions();
+  fillJumpMonthOptions();
   createCalendar();
+  mountJumpControlsToToolbar();
   await refreshCalendarDecorations();
   renderDayDetail(currentSelectedDay);
   updateSyncStatusFromCache();
   bindActions();
+  applyLangToLinks();
 }
 
 bootstrap();

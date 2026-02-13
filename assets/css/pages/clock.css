@@ -35,6 +35,18 @@
   font-size: clamp(2.4rem, 8vw, 6.2rem);
   letter-spacing: 0.06em;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  min-width: 14ch;
+}
+
+.time-main-clock {
+  display: inline-block;
+  width: 8.7ch;
+  text-align: right;
 }
 
 .time-sub {
@@ -43,6 +55,9 @@
 }
 
 .millisecond {
+  display: inline-block;
+  width: 4.2ch;
+  text-align: left;
   opacity: 0.7;
 }
 
@@ -50,6 +65,8 @@
   font-family: var(--font-mono);
   font-size: 2.2rem;
   letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 .alarm-msg {
