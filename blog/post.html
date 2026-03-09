@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="blogPostPageTitle">BaoXiangGao Blog - 文章</title>
+    <link rel="stylesheet" href="/assets/css/tokens.css" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages/blog-post.css" />
+  </head>
+  <body class="page-enter">
+    <main class="app-shell">
+      <header class="page-header panel">
+        <div class="panel-inner header-shell">
+          <div class="brand">
+            <span class="brand-kicker">Blog Post</span>
+            <h1 class="brand-title" id="blogPostBrandTitle">博客文章</h1>
+          </div>
+          <div class="header-actions-inline">
+            <div class="switch-stack">
+              <div class="switch-group" data-lang-switch role="group" aria-label="Language">
+                <button class="switch-item" type="button" data-value="zh">中</button>
+                <button class="switch-item" type="button" data-value="en">EN</button>
+              </div>
+              <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
+                <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
+                <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
+                <button class="switch-item theme-mode" type="button" data-value="system">System</button>
+              </div>
+            </div>
+            <a class="btn" id="blogPostBackDirectoryBtn" href="/blog/index.html">博客目录</a>
+            <a class="btn" id="blogPostOpenStudioBtn" href="/tools/blog-studio.html">编辑文章</a>
+          </div>
+        </div>
+      </header>
+
+      <section class="blog-post-shell">
+        <article class="panel article-panel">
+          <div class="panel-inner">
+            <div id="postHero" class="post-hero"></div>
+            <article id="postArticle" class="post-article"></article>
+          </div>
+        </article>
+
+        <aside class="panel post-side-panel">
+          <div class="panel-inner">
+            <h2 class="panel-title" id="blogPostInfoTitle">文章信息</h2>
+            <div id="postMetaInfo" class="post-meta-info"></div>
+            <div class="toolbar post-side-actions">
+              <button class="btn" id="copyPostLinkBtn">复制链接</button>
+              <button class="btn" id="exportPostHtmlBtn">导出 HTML</button>
+            </div>
+            <h3 class="panel-title" id="blogPostOutlineTitle" style="font-size: 0.95rem">提纲</h3>
+            <div id="postOutline" class="post-outline"></div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script type="module" src="/assets/js/pages/blog-post.js"></script>
+  </body>
+</html>

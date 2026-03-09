@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="blogStudioPageTitle">BaoXiangGao Tools - 博客工作台</title>
+    <link rel="stylesheet" href="/assets/css/tokens.css" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages/blog-studio.css" />
+  </head>
+  <body class="page-enter">
+    <main class="fullscreen-wrap">
+      <header class="page-header panel">
+        <div class="panel-inner header-shell">
+          <div class="brand">
+            <span class="brand-kicker">Editorial Workshop</span>
+            <h1 class="brand-title" id="blogStudioBrandTitle" style="font-size: clamp(1.3rem, 2vw, 2rem)">博客工作台</h1>
+            <p class="brand-desc" id="blogStudioBrandDesc">生成结构化博客草稿，管理文章目录，并一键发布到本地博客目录。</p>
+          </div>
+          <div class="header-actions-inline">
+            <div class="switch-stack">
+              <div class="switch-group" data-lang-switch role="group" aria-label="Language">
+                <button class="switch-item" type="button" data-value="zh">中</button>
+                <button class="switch-item" type="button" data-value="en">EN</button>
+              </div>
+              <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
+                <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
+                <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
+                <button class="switch-item theme-mode" type="button" data-value="system">System</button>
+              </div>
+            </div>
+            <a class="btn" id="blogStudioBackHomeBtn" href="/index.html">返回首页</a>
+            <a class="btn" id="blogStudioOpenDirectoryBtn" href="/blog/index.html">博客目录</a>
+          </div>
+        </div>
+      </header>
+
+      <section class="blog-studio-shell fill-card">
+        <aside class="panel studio-sidebar">
+          <div class="panel-inner studio-sidebar-inner">
+            <div class="panel-heading">
+              <div>
+                <h2 class="panel-title" id="blogStudioLibraryTitle">文章库</h2>
+                <p class="muted" id="blogStudioLibraryHint">草稿与已发布文章统一管理</p>
+              </div>
+              <span class="pill" id="blogCountPill">0</span>
+            </div>
+
+            <input id="blogSearchInput" class="input" placeholder="搜索文章标题、摘要、标签" />
+
+            <div class="template-stack">
+              <div class="muted template-label" id="blogStudioTemplateLabel">快速生成模板</div>
+              <div class="template-grid">
+                <button class="btn template-btn" type="button" data-template="guide" id="templateGuideBtn">指南</button>
+                <button class="btn template-btn" type="button" data-template="journal" id="templateJournalBtn">日志</button>
+                <button class="btn template-btn" type="button" data-template="build-log" id="templateBuildLogBtn">构建记录</button>
+                <button class="btn template-btn" type="button" data-template="review" id="templateReviewBtn">评测</button>
+              </div>
+            </div>
+
+            <div class="toolbar studio-sidebar-actions">
+              <button class="btn btn-primary" id="newBlogBtn">新建文章</button>
+              <button class="btn" id="duplicateBlogBtn">复制当前</button>
+              <button class="btn btn-danger" id="deleteBlogBtn">删除</button>
+            </div>
+
+            <div id="blogList" class="blog-list" aria-live="polite"></div>
+          </div>
+        </aside>
+
+        <div class="studio-main">
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="meta-grid">
+                <label class="field">
+                  <span class="field-label" id="blogStudioTitleLabel">标题</span>
+                  <input id="postTitleInput" class="input" placeholder="比如：我如何把 github.io 改造成工具站" />
+                </label>
+                <label class="field">
+                  <span class="field-label" id="blogStudioSlugLabel">Slug</span>
+                  <input id="postSlugInput" class="input" placeholder="tool-site-build-log" />
+                </label>
+                <label class="field field-span-2">
+                  <span class="field-label" id="blogStudioSummaryLabel">摘要</span>
+                  <textarea id="postSummaryInput" class="textarea compact-textarea" placeholder="写一段站在目录页上展示的摘要"></textarea>
+                </label>
+                <label class="field">
+                  <span class="field-label" id="blogStudioTagsLabel">标签</span>
+                  <input id="postTagsInput" class="input" placeholder="frontend, tools, build-log" />
+                </label>
+                <label class="field">
+                  <span class="field-label" id="blogStudioTemplateFieldLabel">模板</span>
+                  <select id="postTemplateSelect" class="select">
+                    <option value="guide">指南</option>
+                    <option value="journal">日志</option>
+                    <option value="build-log">构建记录</option>
+                    <option value="review">评测</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label" id="blogStudioLanguageLabel">文章语言</span>
+                  <select id="postLanguageSelect" class="select">
+                    <option value="zh">中文</option>
+                    <option value="en">English</option>
+                  </select>
+                </label>
+                <div class="field">
+                  <span class="field-label" id="blogStudioAccentLabel">封面风格</span>
+                  <div class="accent-picker" id="accentPicker">
+                    <button class="accent-swatch ocean" type="button" data-accent="ocean" aria-label="Ocean accent"></button>
+                    <button class="accent-swatch copper" type="button" data-accent="copper" aria-label="Copper accent"></button>
+                    <button class="accent-swatch forest" type="button" data-accent="forest" aria-label="Forest accent"></button>
+                    <button class="accent-swatch midnight" type="button" data-accent="midnight" aria-label="Midnight accent"></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner studio-command-bar">
+              <div class="toolbar">
+                <button class="btn" id="generateDraftBtn">生成结构稿</button>
+                <button class="btn btn-primary" id="saveDraftBtn">保存草稿</button>
+                <button class="btn" id="publishBlogBtn">发布文章</button>
+                <button class="btn" id="openPostBtn">打开文章</button>
+              </div>
+              <div class="toolbar">
+                <button class="btn" id="exportBlogMdBtn">导出 MD</button>
+                <button class="btn" id="exportBlogHtmlBtn">导出 HTML</button>
+                <span class="pill" id="blogStudioStatusPill">Draft</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel blog-workbench">
+            <div class="blog-editor-head">
+              <div class="toolbar markdown-tools">
+                <button class="btn btn-ghost" type="button" data-snippet="# " id="blogSnippetH1">H1</button>
+                <button class="btn btn-ghost" type="button" data-snippet="## " id="blogSnippetH2">H2</button>
+                <button class="btn btn-ghost" type="button" data-snippet="> " id="blogSnippetQuote">引用</button>
+                <button class="btn btn-ghost" type="button" data-snippet="- " id="blogSnippetList">列表</button>
+                <button class="btn btn-ghost" type="button" data-snippet="```js\n\n```" id="blogSnippetCode">代码块</button>
+              </div>
+              <div class="studio-meta-strip">
+                <span class="muted" id="blogStudioMetrics">0 字 · 0 分钟</span>
+              </div>
+            </div>
+            <div class="studio-split">
+              <section class="editor-pane">
+                <h3 id="blogStudioEditorTitle">Markdown 编辑</h3>
+                <textarea id="blogContentInput" class="textarea studio-textarea" spellcheck="false"></textarea>
+              </section>
+              <section class="editor-pane">
+                <h3 id="blogStudioPreviewTitle">实时预览</h3>
+                <article id="blogPreview" class="blog-preview"></article>
+              </section>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script type="module" src="/assets/js/pages/blog-studio.js"></script>
+  </body>
+</html>

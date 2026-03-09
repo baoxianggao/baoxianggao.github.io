@@ -288,6 +288,74 @@
   min-height: 0;
 }
 
+.panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 12px;
+  color: var(--text-sub);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.compact-textarea {
+  min-height: 96px;
+}
+
+.metric-box {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card-strong) 78%, transparent);
+}
+
+.metric-box strong {
+  font-family: var(--font-title);
+  font-size: 1.35rem;
+}
+
+.empty-state {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  color: var(--text-sub);
+  background: color-mix(in srgb, var(--card-strong) 72%, transparent);
+}
+
+.accent-ocean {
+  --accent-card-a: rgba(79, 227, 209, 0.28);
+  --accent-card-b: rgba(114, 168, 255, 0.22);
+}
+
+.accent-copper {
+  --accent-card-a: rgba(237, 140, 83, 0.26);
+  --accent-card-b: rgba(255, 208, 109, 0.2);
+}
+
+.accent-forest {
+  --accent-card-a: rgba(47, 211, 140, 0.24);
+  --accent-card-b: rgba(95, 184, 137, 0.18);
+}
+
+.accent-midnight {
+  --accent-card-a: rgba(71, 112, 255, 0.26);
+  --accent-card-b: rgba(26, 188, 233, 0.18);
+}
+
 @media (max-width: 768px) {
   .stat-row,
   .split {

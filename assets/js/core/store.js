@@ -35,7 +35,8 @@ export const STORAGE_KEYS = Object.freeze({
   events: "bxg.tools.v1.events",
   editorDocs: "bxg.tools.v1.editor_docs",
   clock: "bxg.tools.v1.clock",
-  holidayCache: "bxg.tools.v1.holiday_cache"
+  holidayCache: "bxg.tools.v1.holiday_cache",
+  blogPosts: "bxg.tools.v1.blog_posts"
 });
 
 const DEFAULT_SETTINGS = {
@@ -386,6 +387,9 @@ export function initializeDefaults() {
   }
   if (localStorage.getItem(STORAGE_KEYS.holidayCache) === null) {
     setState(STORAGE_KEYS.holidayCache, { updatedAtISO: "", years: {} });
+  }
+  if (localStorage.getItem(STORAGE_KEYS.blogPosts) === null) {
+    setState(STORAGE_KEYS.blogPosts, []);
   }
 }
 

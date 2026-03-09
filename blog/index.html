@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="blogDirectoryPageTitle">BaoXiangGao Blog - 博客目录</title>
+    <link rel="stylesheet" href="/assets/css/tokens.css" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages/blog-index.css" />
+  </head>
+  <body class="page-enter">
+    <main class="app-shell">
+      <header class="page-header panel">
+        <div class="panel-inner header-shell">
+          <div class="brand">
+            <span class="brand-kicker">Blog Directory</span>
+            <h1 class="brand-title" id="blogDirectoryBrandTitle">个人博客目录</h1>
+            <p class="brand-desc" id="blogDirectoryBrandDesc">整理发布过的文章、构建记录和个人观察。目录数据来自本地存储，适合在 GitHub Pages 上做轻量发布。</p>
+          </div>
+          <div class="header-actions-inline">
+            <div class="switch-stack">
+              <div class="switch-group" data-lang-switch role="group" aria-label="Language">
+                <button class="switch-item" type="button" data-value="zh">中</button>
+                <button class="switch-item" type="button" data-value="en">EN</button>
+              </div>
+              <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
+                <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
+                <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
+                <button class="switch-item theme-mode" type="button" data-value="system">System</button>
+              </div>
+            </div>
+            <a class="btn" id="blogDirectoryBackHomeBtn" href="/index.html">返回首页</a>
+            <a class="btn" id="blogDirectoryOpenStudioBtn" href="/tools/blog-studio.html">打开工作台</a>
+          </div>
+        </div>
+      </header>
+
+      <section class="blog-directory-grid">
+        <article class="panel featured-post">
+          <div class="panel-inner">
+            <div class="featured-meta-row">
+              <span class="pill" id="blogFeaturedPill">Featured</span>
+              <span class="muted" id="blogDirectoryStats">0 published / 0 draft</span>
+            </div>
+            <div id="featuredPostWrap" class="featured-post-wrap"></div>
+          </div>
+        </article>
+
+        <aside class="panel blog-filter-panel">
+          <div class="panel-inner">
+            <h2 class="panel-title" id="blogFilterTitle">筛选</h2>
+            <label class="field">
+              <span class="field-label" id="blogSearchLabel">搜索</span>
+              <input id="blogDirectorySearch" class="input" placeholder="搜索标题、摘要、标签" />
+            </label>
+            <div class="field">
+              <span class="field-label" id="blogTagsLabel">标签</span>
+              <div id="blogTagFilters" class="chips"></div>
+            </div>
+            <div class="field">
+              <span class="field-label" id="blogDraftsLabel">本地草稿</span>
+              <div id="draftSummary" class="notice">暂无草稿</div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="panel" style="margin-top: 18px">
+        <div class="panel-inner">
+          <div class="panel-heading">
+            <div>
+              <h2 class="panel-title" id="blogDirectoryListTitle">全部文章</h2>
+              <p class="muted" id="blogDirectoryListHint">按发布时间倒序排列</p>
+            </div>
+          </div>
+          <div id="blogCardGrid" class="blog-card-grid"></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/assets/js/pages/blog-index.js"></script>
+  </body>
+</html>

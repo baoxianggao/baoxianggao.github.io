@@ -17,6 +17,7 @@
           <div class="brand">
             <span class="brand-kicker">Utility</span>
             <h1 class="brand-title" id="jsonBrandTitle" style="font-size: clamp(1.3rem, 2vw, 2rem)">JSON 工具箱</h1>
+            <p class="brand-desc" id="jsonBrandDesc">格式化、校验、YAML 转换、路径提取和样本切换集中在一个面板里，适合更高频地处理结构化数据。</p>
           </div>
           <div class="header-actions-inline">
             <div class="switch-stack">
@@ -31,29 +32,76 @@
               </div>
             </div>
             <a class="btn" id="jsonBackHomeBtn" href="/index.html">返回首页</a>
-            <button class="btn" id="btnFormatJson">格式化</button>
-            <button class="btn" id="btnMinifyJson">压缩</button>
-            <button class="btn" id="btnValidateJson">校验</button>
-            <button class="btn" id="btnJsonToYaml">JSON→YAML</button>
-            <button class="btn" id="btnYamlToJson">YAML→JSON</button>
           </div>
         </div>
       </header>
 
       <section class="json-shell fill-card">
-        <article class="panel">
+        <article class="panel json-command-panel">
           <div class="panel-inner">
-            <h2 class="panel-title" id="jsonInputTitle">输入</h2>
-            <textarea id="jsonInput" class="textarea" spellcheck="false"></textarea>
+            <div class="panel-heading">
+              <div>
+                <h2 class="panel-title" id="jsonCommandTitle">操作面板</h2>
+                <p class="muted" id="jsonCommandHint">先选样本，再决定是格式化、压缩、校验还是转换</p>
+              </div>
+              <div class="toolbar">
+                <button class="btn" id="jsonSampleConfigBtn">配置样本</button>
+                <button class="btn" id="jsonSampleApiBtn">接口样本</button>
+                <button class="btn" id="jsonSampleTodoBtn">待办样本</button>
+              </div>
+            </div>
+            <div class="json-toolbar-grid">
+              <div class="toolbar">
+                <button class="btn btn-primary" id="btnFormatJson">格式化</button>
+                <button class="btn" id="btnMinifyJson">压缩</button>
+                <button class="btn" id="btnValidateJson">校验</button>
+                <button class="btn" id="btnJsonToYaml">JSON→YAML</button>
+                <button class="btn" id="btnYamlToJson">YAML→JSON</button>
+              </div>
+              <div class="toolbar">
+                <button class="btn" id="btnCopyOutput">复制输出</button>
+                <button class="btn" id="btnSwapJson">交换输入输出</button>
+                <button class="btn" id="btnClearJson">清空</button>
+              </div>
+            </div>
           </div>
         </article>
-        <article class="panel">
-          <div class="panel-inner">
-            <h2 class="panel-title" id="jsonOutputTitle">输出</h2>
-            <textarea id="jsonOutput" class="textarea" spellcheck="false"></textarea>
-            <div class="result-meta" id="jsonMeta" style="margin-top: 8px"></div>
-          </div>
-        </article>
+
+        <section class="json-work-grid">
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <h2 class="panel-title" id="jsonInputTitle">输入</h2>
+                <span class="pill" id="jsonInputModePill">JSON</span>
+              </div>
+              <textarea id="jsonInput" class="textarea json-textarea" spellcheck="false"></textarea>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <h2 class="panel-title" id="jsonOutputTitle">输出</h2>
+                <span class="pill" id="jsonOutputModePill">Result</span>
+              </div>
+              <textarea id="jsonOutput" class="textarea json-textarea" spellcheck="false"></textarea>
+            </div>
+          </article>
+
+          <aside class="panel json-side-panel">
+            <div class="panel-inner">
+              <h2 class="panel-title" id="jsonInsightTitle">结构洞察</h2>
+              <div class="result-meta" id="jsonMeta"></div>
+              <div class="json-summary-grid" id="jsonSummaryGrid"></div>
+              <div class="field" style="margin-top: 16px">
+                <span class="field-label" id="jsonPathLabel">路径提取</span>
+                <input id="jsonPathInput" class="input" placeholder="例如：tools[0]" />
+                <button class="btn" id="btnExtractPath">提取路径</button>
+              </div>
+              <div id="jsonPathResult" class="hash-output" style="margin-top: 12px">--</div>
+            </div>
+          </aside>
+        </section>
       </section>
     </main>
 

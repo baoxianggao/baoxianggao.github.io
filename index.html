@@ -32,6 +32,7 @@
           </div>
           <a class="btn" id="homeTopTodoBtn" href="/tools/todo.html">新增待办</a>
           <a class="btn" id="homeTopEditorBtn" href="/tools/editor.html">打开编辑器</a>
+          <a class="btn" id="homeTopBlogBtn" href="/tools/blog-studio.html">写博客</a>
           <a class="btn btn-primary" id="homeTopClockBtn" href="/tools/clock.html">启动倒计时</a>
         </div>
       </header>
@@ -59,6 +60,7 @@
                 <button class="btn btn-primary" id="quickTodo">新建 TODO</button>
                 <button class="btn" id="quickClock">30 分钟倒计时</button>
                 <button class="btn" id="quickEditor">新建文档</button>
+                <button class="btn" id="quickBlog">新建博客</button>
                 <button class="btn btn-ghost" id="refreshAll">刷新全部摘要</button>
               </div>
               <p class="notice" id="homeLinkNotice" style="margin-top: 12px">跨工具联动已启用：TODO 新增后会自动同步到首页与日历。</p>
@@ -112,6 +114,19 @@
                   <strong id="statTodoDoing">0</strong>
                 </div>
               </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="homeBlogTitle">博客目录</h2>
+                  <p class="muted" id="homeBlogHint">最近发布与本地草稿</p>
+                </div>
+                <a class="btn btn-ghost" id="homeBlogDirectoryBtn" href="/blog/index.html">打开目录</a>
+              </div>
+              <div id="homeBlogList" class="blog-teaser-list" style="margin-top: 12px"></div>
             </div>
           </article>
         </div>

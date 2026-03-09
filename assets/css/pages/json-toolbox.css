@@ -2,25 +2,85 @@
   min-height: 0;
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
 }
 
-.json-shell .textarea {
-  min-height: calc(100vh - 250px);
+.json-command-panel,
+.json-work-grid,
+.json-side-panel {
+  min-height: 0;
+}
+
+.json-toolbar-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.json-work-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 320px;
+  gap: 14px;
+}
+
+.json-textarea {
+  min-height: calc(100vh - 310px);
+  resize: none;
+  font-family: "JetBrains Mono", var(--font-mono);
+  line-height: 1.65;
 }
 
 .result-meta {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card-strong) 78%, transparent);
   color: var(--text-sub);
   font-size: 13px;
 }
 
-@media (max-width: 768px) {
-  .json-shell {
+.json-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.json-metric-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--card-strong) 78%, transparent);
+}
+
+.json-metric-card strong {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-title);
+}
+
+#jsonPathResult {
+  min-height: 110px;
+  display: flex;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card-strong) 80%, transparent);
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1200px) {
+  .json-work-grid {
     grid-template-columns: 1fr;
   }
 
-  .json-shell .textarea {
-    min-height: 260px;
+  .json-textarea {
+    min-height: 280px;
   }
 }

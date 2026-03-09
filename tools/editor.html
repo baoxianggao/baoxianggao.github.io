@@ -17,55 +17,105 @@
           <div class="brand">
             <span class="brand-kicker">Markdown Studio</span>
             <h1 class="brand-title" id="editorBrandTitle" style="font-size: clamp(1.3rem, 2vw, 2rem)">文本/代码/图片编辑器</h1>
+            <p class="brand-desc" id="editorBrandDesc">文档库、模板、拖拽导入、实时预览和博客草稿联动整合在一个工作台里。</p>
           </div>
-          <div class="header-actions">
-            <div class="toolbar">
-              <div class="switch-stack">
-                <div class="switch-group" data-lang-switch role="group" aria-label="Language">
-                  <button class="switch-item" type="button" data-value="zh">中</button>
-                  <button class="switch-item" type="button" data-value="en">EN</button>
-                </div>
-                <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
-                  <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
-                  <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
-                  <button class="switch-item theme-mode" type="button" data-value="system">System</button>
-                </div>
+          <div class="header-actions-inline">
+            <div class="switch-stack">
+              <div class="switch-group" data-lang-switch role="group" aria-label="Language">
+                <button class="switch-item" type="button" data-value="zh">中</button>
+                <button class="switch-item" type="button" data-value="en">EN</button>
               </div>
-              <a class="btn" id="editorBackHomeBtn" href="/index.html">返回首页</a>
+              <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
+                <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
+                <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
+                <button class="switch-item theme-mode" type="button" data-value="system">System</button>
+              </div>
             </div>
-            <div class="toolbar">
-              <select class="select" id="docSelect"></select>
-              <button class="btn" id="newDocBtn">新建文档</button>
-              <button class="btn btn-primary" id="saveDocBtn">保存本地</button>
-            </div>
+            <a class="btn" id="editorBackHomeBtn" href="/index.html">返回首页</a>
+            <a class="btn" id="editorOpenBlogBtn" href="/tools/blog-studio.html">博客工作台</a>
           </div>
         </div>
       </header>
 
       <section class="editor-shell fill-card">
-        <article class="panel">
-          <div class="panel-inner" style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center">
-            <input id="docTitleInput" class="input" placeholder="文档标题" />
-            <div class="toolbar">
-              <button class="btn" id="exportMdBtn">导出 MD</button>
-              <button class="btn" id="exportTxtBtn">导出 TXT</button>
-              <button class="btn" id="exportHtmlBtn">导出 HTML</button>
+        <aside class="panel editor-sidebar">
+          <div class="panel-inner editor-sidebar-inner">
+            <div class="panel-heading">
+              <div>
+                <h2 class="panel-title" id="editorLibraryTitle">文档库</h2>
+                <p class="muted" id="editorLibraryHint">本地文档实时保存</p>
+              </div>
+              <span class="pill" id="editorDocCountPill">0</span>
             </div>
-          </div>
-        </article>
 
-        <article class="panel editor-work">
-          <div class="split" style="height: 100%">
-            <section class="editor-pane">
-              <h3 id="editorPaneEditTitle">编辑区（支持拖拽图片）</h3>
-              <textarea id="editorText" class="textarea" spellcheck="false"></textarea>
-            </section>
-            <section class="editor-pane">
-              <h3 id="editorPanePreviewTitle">实时预览</h3>
-              <div id="editorPreview"></div>
-            </section>
+            <input id="docSearchInput" class="input" placeholder="搜索文档标题或内容" />
+
+            <div class="template-stack">
+              <div class="muted template-label" id="editorTemplateLabel">快速模板</div>
+              <div class="template-grid">
+                <button class="btn template-btn" type="button" data-template="note" id="editorTemplateNoteBtn">笔记</button>
+                <button class="btn template-btn" type="button" data-template="code" id="editorTemplateCodeBtn">代码</button>
+                <button class="btn template-btn" type="button" data-template="blog" id="editorTemplateBlogBtn">博客</button>
+                <button class="btn template-btn" type="button" data-template="meeting" id="editorTemplateMeetingBtn">会议</button>
+              </div>
+            </div>
+
+            <div class="toolbar editor-sidebar-actions">
+              <button class="btn btn-primary" id="newDocBtn">新建文档</button>
+              <button class="btn" id="duplicateDocBtn">复制</button>
+              <button class="btn" id="importDocBtn">导入文件</button>
+              <button class="btn btn-danger" id="deleteDocBtn">删除</button>
+            </div>
+
+            <div id="docList" class="doc-list" aria-live="polite"></div>
+            <input id="importDocFile" type="file" hidden accept=".md,.markdown,.txt,.json,.js,.ts,.html,.css,.csv,.yml,.yaml" />
           </div>
-        </article>
+        </aside>
+
+        <div class="editor-main">
+          <article class="panel">
+            <div class="panel-inner editor-topbar">
+              <div class="editor-topbar-main">
+                <input id="docTitleInput" class="input" placeholder="文档标题" />
+                <div class="editor-meta-strip">
+                  <span class="pill" id="editorSaveStatePill">已保存</span>
+                  <span class="muted" id="editorStatsText">0 字 · 0 行</span>
+                </div>
+              </div>
+              <div class="toolbar editor-export-actions">
+                <button class="btn" id="saveDocBtn">保存本地</button>
+                <button class="btn" id="sendToBlogBtn">转成博客草稿</button>
+                <button class="btn" id="exportMdBtn">导出 MD</button>
+                <button class="btn" id="exportTxtBtn">导出 TXT</button>
+                <button class="btn" id="exportHtmlBtn">导出 HTML</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel editor-work">
+            <div class="editor-helper-bar">
+              <div class="toolbar">
+                <button class="btn btn-ghost" type="button" data-snippet="# " id="editorSnippetH1">H1</button>
+                <button class="btn btn-ghost" type="button" data-snippet="## " id="editorSnippetH2">H2</button>
+                <button class="btn btn-ghost" type="button" data-snippet="- " id="editorSnippetList">列表</button>
+                <button class="btn btn-ghost" type="button" data-snippet="> " id="editorSnippetQuote">引用</button>
+                <button class="btn btn-ghost" type="button" data-snippet="```js\n\n```" id="editorSnippetCode">代码块</button>
+                <button class="btn btn-ghost" type="button" data-snippet="![alt](url)" id="editorSnippetImage">图片</button>
+              </div>
+              <div class="muted" id="editorDropHint">支持拖拽图片和文本文件到编辑区</div>
+            </div>
+            <div class="editor-split">
+              <section class="editor-pane">
+                <h3 id="editorPaneEditTitle">编辑区</h3>
+                <textarea id="editorText" class="textarea editor-textarea" spellcheck="false"></textarea>
+              </section>
+              <section class="editor-pane">
+                <h3 id="editorPanePreviewTitle">实时预览</h3>
+                <div id="editorPreview"></div>
+              </section>
+            </div>
+          </article>
+        </div>
       </section>
     </main>
 

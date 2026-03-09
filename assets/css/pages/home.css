@@ -95,6 +95,47 @@
   font-size: 13px;
 }
 
+.blog-teaser-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.blog-teaser-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background:
+    radial-gradient(circle at top right, rgba(79, 227, 209, 0.12), transparent 34%),
+    color-mix(in srgb, var(--card-strong) 82%, transparent);
+  transition: transform 220ms var(--ease-out), border-color 220ms var(--ease-out), box-shadow 220ms var(--ease-out);
+}
+
+.blog-teaser-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(79, 227, 209, 0.52);
+  box-shadow: 0 20px 32px rgba(0, 0, 0, 0.14);
+}
+
+.blog-teaser-card h3 {
+  margin: 10px 0 6px;
+  font-family: var(--font-title);
+  font-size: 1rem;
+}
+
+.blog-teaser-card p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 0.92rem;
+}
+
+.blog-teaser-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
 [data-theme="light"] .agenda-item {
   background: rgba(233, 241, 252, 0.98);
   border-color: rgba(33, 85, 152, 0.34);
@@ -119,4 +160,13 @@
   border-color: rgba(16, 159, 151, 0.58);
   color: #14374f;
   background: rgba(16, 159, 151, 0.24);
+}
+
+[data-theme="light"] .blog-teaser-card {
+  background: rgba(234, 242, 252, 0.98);
+  border-color: rgba(33, 85, 152, 0.28);
+}
+
+[data-theme="light"] .blog-teaser-card p {
+  color: #31567f;
 }

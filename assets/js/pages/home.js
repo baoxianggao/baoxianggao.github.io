@@ -7,6 +7,7 @@ import {
   initializeDefaults,
   onStateChanged
 } from "../core/store.js";
+import { estimateReadingMinutes, listBlogPosts } from "../core/blog.js";
 import { formatDate, formatDayKey, formatTime } from "../core/date.js";
 import { resolveWeatherByGeoOrCity, geocodeCity, getWeatherByCoords } from "../core/weather.js";
 import { bootI18n, getLang, isEnglish, tr, langHref, applyLangToLinks, setText, setPlaceholder } from "../core/i18n.js";
@@ -23,6 +24,7 @@ const miniCalendarTitleEl = document.getElementById("miniCalendarTitle");
 const statTodoAllEl = document.getElementById("statTodoAll");
 const statTodoTodayEl = document.getElementById("statTodoToday");
 const statTodoDoingEl = document.getElementById("statTodoDoing");
+const homeBlogListEl = document.getElementById("homeBlogList");
 const weatherTempEl = document.getElementById("weatherTemp");
 const weatherTextEl = document.getElementById("weatherText");
 const weatherMetaEl = document.getElementById("weatherMeta");
@@ -32,8 +34,27 @@ const weatherCityBtn = document.getElementById("weatherCityBtn");
 
 const locale = isEnglish() ? "en-US" : "zh-CN";
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function toolList() {
   return [
+    {
+      name: tr("博客目录", "Blog Directory"),
+      desc: tr("发布文章、浏览目录与最近草稿", "Published posts, directory, and recent drafts"),
+      href: langHref("/blog/index.html")
+    },
+    {
+      name: tr("博客工作台", "Blog Studio"),
+      desc: tr("生成结构稿并发布本地博客", "Generate structured drafts and publish posts"),
+      href: langHref("/tools/blog-studio.html")
+    },
     {
       name: tr("全屏日历", "Calendar"),
       desc: tr("农历、法定节假日、任务联动", "Lunar + China holidays + task sync"),
@@ -68,6 +89,16 @@ function toolList() {
       name: tr("颜色实验室", "Color Lab"),
       desc: tr("调色板、对比度、CSS 变量", "Palette, contrast, CSS vars"),
       href: langHref("/tools/color-lab.html")
+    },
+    {
+      name: tr("密码实验室", "Password Lab"),
+      desc: tr("生成密码、短语与文本哈希", "Generate passwords, passphrases, and text hashes"),
+      href: langHref("/tools/password-lab.html")
+    },
+    {
+      name: tr("单位换算台", "Unit Converter"),
+      desc: tr("长度、温度、数据体积与时间换算", "Convert length, temperature, data size, and time"),
+      href: langHref("/tools/unit-converter.html")
     }
   ];
 }
@@ -82,6 +113,7 @@ function applyStaticI18n() {
 
   setText("#homeTopTodoBtn", "新增待办", "New Todo");
   setText("#homeTopEditorBtn", "打开编辑器", "Open Editor");
+  setText("#homeTopBlogBtn", "写博客", "Write Blog");
   setText("#homeTopClockBtn", "启动倒计时", "Start Countdown");
 
   setText("#homeAgendaTitle", "近期日程", "Upcoming Agenda");
@@ -91,6 +123,7 @@ function applyStaticI18n() {
   setText("#quickTodo", "新建 TODO", "Create TODO");
   setText("#quickClock", "30 分钟倒计时", "30-min Countdown");
   setText("#quickEditor", "新建文档", "New Document");
+  setText("#quickBlog", "新建博客", "New Blog");
   setText("#refreshAll", "刷新全部摘要", "Refresh Dashboard");
   setText(
     "#homeLinkNotice",
@@ -108,6 +141,9 @@ function applyStaticI18n() {
   setText("#homeStatAllLabel", "待办总数", "All Todos");
   setText("#homeStatTodayLabel", "今日截止", "Due Today");
   setText("#homeStatDoingLabel", "进行中", "In Progress");
+  setText("#homeBlogTitle", "博客目录", "Blog Directory");
+  setText("#homeBlogHint", "最近发布与本地草稿", "Recent posts and local drafts");
+  setText("#homeBlogDirectoryBtn", "打开目录", "Open Directory");
 
   weatherTextEl.textContent = tr("天气加载中...", "Loading weather...");
   weatherMetaEl.textContent = tr("定位中...", "Locating...");
@@ -197,6 +233,34 @@ function renderStats() {
   statTodoDoingEl.textContent = String(doingCount);
 }
 
+function renderRecentBlogs() {
+  const posts = listBlogPosts({ includeDrafts: true }).slice(0, 4);
+  if (posts.length === 0) {
+    homeBlogListEl.innerHTML = `
+      <div class="agenda-item">
+        <span class="muted">${tr("还没有博客内容，先去博客工作台生成第一篇结构稿。", "No blog content yet. Generate your first structured draft in Blog Studio.")}</span>
+      </div>
+    `;
+    return;
+  }
+
+  homeBlogListEl.innerHTML = posts
+    .map((post) => {
+      const href = langHref(`/blog/post.html?id=${encodeURIComponent(post.id)}`);
+      return `
+        <a class="blog-teaser-card" href="${href}">
+          <div class="blog-teaser-meta">
+            <span class="pill">${post.status === "published" ? tr("已发布", "Published") : tr("草稿", "Draft")}</span>
+            <span class="muted">${estimateReadingMinutes(post.content)} ${tr("分钟", "min")}</span>
+          </div>
+          <h3>${escapeHtml(post.title)}</h3>
+          <p>${escapeHtml(post.summary)}</p>
+        </a>
+      `;
+    })
+    .join("");
+}
+
 function setWeatherLoading(text = tr("天气加载中...", "Loading weather...")) {
   weatherTempEl.textContent = "--°";
   weatherTextEl.textContent = text;
@@ -256,9 +320,14 @@ function bindActions() {
     window.location.href = langHref("/tools/editor.html");
   });
 
+  document.getElementById("quickBlog").addEventListener("click", () => {
+    window.location.href = langHref("/tools/blog-studio.html");
+  });
+
   document.getElementById("refreshAll").addEventListener("click", () => {
     renderAgenda();
     renderStats();
+    renderRecentBlogs();
     renderMiniCalendar();
     refreshWeatherByGeo();
   });
@@ -279,6 +348,7 @@ function bootstrap() {
   renderAgenda();
   renderMiniCalendar();
   renderStats();
+  renderRecentBlogs();
   bindActions();
   refreshWeatherByGeo();
   applyLangToLinks();
@@ -287,6 +357,9 @@ function bootstrap() {
     if ([STORAGE_KEYS.todos, STORAGE_KEYS.events].includes(detail.key)) {
       renderAgenda();
       renderStats();
+    }
+    if (detail.key === STORAGE_KEYS.blogPosts) {
+      renderRecentBlogs();
     }
   });
 }
