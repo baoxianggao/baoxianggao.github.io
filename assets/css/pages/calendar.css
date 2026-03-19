@@ -6,6 +6,29 @@
   flex: 1;
 }
 
+#calendarPageWrap .page-header {
+  transition: transform 260ms var(--ease-out), opacity 260ms var(--ease-out);
+}
+
+#calendarPageWrap .immersive-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translate(-50%, 14px);
+  max-width: min(92vw, 720px);
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(79, 227, 209, 0.28);
+  background: color-mix(in srgb, var(--card-strong) 84%, transparent);
+  color: var(--text-sub);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 30;
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+}
+
 .calendar-main {
   min-height: 0;
 }
@@ -149,6 +172,17 @@
   margin-bottom: 8px;
 }
 
+#calendarPageWrap.is-immersive.is-header-hidden .page-header {
+  opacity: 0;
+  transform: translateY(-110%);
+  pointer-events: none;
+}
+
+#calendarPageWrap.is-immersive.is-hud-visible .immersive-hint {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 #calendarPageWrap.is-immersive .page-header.panel {
   border-radius: 22px;
   backdrop-filter: blur(18px);
@@ -164,6 +198,11 @@
 
 #calendarPageWrap.is-immersive #calendar {
   height: calc(100vh - 102px);
+}
+
+#calendarPageWrap.is-immersive .calendar-main,
+#calendarPageWrap.is-immersive .side-panel {
+  box-shadow: 0 24px 56px rgba(4, 10, 21, 0.34);
 }
 
 #calendarPageWrap.is-immersive .fc .fc-daygrid-day-frame {

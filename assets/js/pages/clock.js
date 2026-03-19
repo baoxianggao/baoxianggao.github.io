@@ -17,6 +17,7 @@ const timeSubEl = document.getElementById("timeSub");
 const syncStateEl = document.getElementById("syncState");
 const pageWrapEl = document.getElementById("clockPageWrap");
 const fullscreenBtn = document.getElementById("clockFullscreenBtn");
+const immersiveHintEl = document.getElementById("clockImmersiveHint");
 const countdownDisplayEl = document.getElementById("countdownDisplay");
 const alarmMsgEl = document.getElementById("alarmMsg");
 const targetTimeInput = document.getElementById("targetTimeInput");
@@ -235,6 +236,11 @@ function applyStaticI18n() {
   setText("#clockBrandTitle", "高精度时钟与倒计时", "High-Precision Clock & Countdown");
   setText("#clockBackHomeBtn", "返回首页", "Back Home");
   setText("#clockFullscreenBtn", "进入全屏", "Enter Fullscreen");
+  setText(
+    "#clockImmersiveHint",
+    "沉浸模式已启用 · 按 F 切换全屏 · 按 Esc 退出 · 移动鼠标可唤出顶部工具栏",
+    "Immersive mode on · Press F to toggle fullscreen · Esc exits · Move the pointer to reveal the top bar"
+  );
   setText("#clockCountdownTitle", "倒计时", "Countdown");
   setText("#clockTargetLabel", "目标时间", "Target Time");
   setText("#preset5Btn", "5 分钟", "5 min");
@@ -259,6 +265,7 @@ async function bootstrap() {
       unsupported: tr("浏览器不支持", "Unsupported")
     }
   });
+  immersiveHintEl?.setAttribute("aria-live", "polite");
   await syncClockOffset();
   setInterval(syncClockOffset, 15 * 60 * 1000);
   renderClock();

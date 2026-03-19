@@ -22,6 +22,7 @@ const syncBtn = document.getElementById("btnSyncHoliday");
 const syncStatusEl = document.getElementById("holidaySyncStatus");
 const pageWrapEl = document.getElementById("calendarPageWrap");
 const fullscreenBtn = document.getElementById("calendarFullscreenBtn");
+const immersiveHintEl = document.getElementById("calendarImmersiveHint");
 const jumpControlsEl = document.getElementById("calendarJumpControls");
 const jumpYearEl = document.getElementById("jumpYear");
 const jumpMonthEl = document.getElementById("jumpMonth");
@@ -314,6 +315,11 @@ function applyStaticI18n() {
   setText("#calendarBrandTitle", "农历 + 法定节假日日历", "Lunar + China Public Holiday Calendar");
   setText("#calendarBackHomeBtn", "返回首页", "Back Home");
   setText("#calendarFullscreenBtn", "进入全屏", "Enter Fullscreen");
+  setText(
+    "#calendarImmersiveHint",
+    "沉浸模式已启用 · 按 F 切换全屏 · 按 Esc 退出 · 移动鼠标可唤出顶部工具栏",
+    "Immersive mode on · Press F to toggle fullscreen · Esc exits · Move the pointer to reveal the top bar"
+  );
   setText("#btnSyncHoliday", "同步节假日", "Sync Holidays");
   selectedDateLabelEl.textContent = tr("请选择日期", "Select a date");
   selectedHolidayEl.textContent = tr("暂无节假日信息", "No holiday info");
@@ -354,6 +360,8 @@ function bindActions() {
       }, 160);
     }
   });
+
+  immersiveHintEl?.setAttribute("aria-live", "polite");
 }
 
 async function bootstrap() {

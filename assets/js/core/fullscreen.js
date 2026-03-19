@@ -10,7 +10,9 @@ export function initImmersiveFullscreen({
   target,
   button,
   labels,
-  onChange
+  onChange,
+  chromeSelector = ".page-header",
+  idleMs = 2400
 }) {
   if (!target || !button) {
     return { update() {}, toggle() {} };
@@ -19,9 +21,42 @@ export function initImmersiveFullscreen({
   const supportsFullscreen =
     typeof target.requestFullscreen === "function" &&
     typeof document.exitFullscreen === "function";
+  const chrome = target.querySelector(chromeSelector);
+  let hideTimer = 0;
 
   function isActive() {
     return document.fullscreenElement === target;
+  }
+
+  function clearHideTimer() {
+    if (hideTimer) {
+      window.clearTimeout(hideTimer);
+      hideTimer = 0;
+    }
+  }
+
+  function revealChrome() {
+    if (!isActive()) {
+      return;
+    }
+    clearHideTimer();
+    target.classList.remove("is-header-hidden");
+    target.classList.add("is-hud-visible");
+    if (!chrome) {
+      return;
+    }
+    hideTimer = window.setTimeout(() => {
+      if (!isActive()) {
+        return;
+      }
+      target.classList.add("is-header-hidden");
+      target.classList.remove("is-hud-visible");
+    }, idleMs);
+  }
+
+  function resetChromeState() {
+    clearHideTimer();
+    target.classList.remove("is-header-hidden", "is-hud-visible");
   }
 
   function update() {
@@ -36,6 +71,12 @@ export function initImmersiveFullscreen({
     } else {
       button.disabled = false;
       button.textContent = active ? labels.exit : labels.enter;
+    }
+
+    if (active) {
+      revealChrome();
+    } else {
+      resetChromeState();
     }
 
     if (typeof onChange === "function") {
@@ -67,6 +108,29 @@ export function initImmersiveFullscreen({
     }
     event.preventDefault();
     toggle();
+  });
+  document.addEventListener("mousemove", (event) => {
+    if (!isActive()) {
+      return;
+    }
+    if (event.clientY <= 120 || target.classList.contains("is-header-hidden")) {
+      revealChrome();
+    }
+  });
+  document.addEventListener("touchstart", () => {
+    if (isActive()) {
+      revealChrome();
+    }
+  }, { passive: true });
+  document.addEventListener("focusin", () => {
+    if (isActive()) {
+      revealChrome();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (isActive() && ["Escape", "Tab"].includes(event.key)) {
+      revealChrome();
+    }
   });
 
   update();

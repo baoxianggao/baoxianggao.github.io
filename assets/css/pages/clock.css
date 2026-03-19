@@ -6,6 +6,29 @@
   flex: 1;
 }
 
+#clockPageWrap .page-header {
+  transition: transform 260ms var(--ease-out), opacity 260ms var(--ease-out);
+}
+
+#clockPageWrap .immersive-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translate(-50%, 14px);
+  max-width: min(92vw, 720px);
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(79, 227, 209, 0.28);
+  background: color-mix(in srgb, var(--card-strong) 84%, transparent);
+  color: var(--text-sub);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 30;
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+}
+
 .clock-main {
   display: flex;
   align-items: center;
@@ -91,6 +114,17 @@
   margin-bottom: 8px;
 }
 
+#clockPageWrap.is-immersive.is-header-hidden .page-header {
+  opacity: 0;
+  transform: translateY(-110%);
+  pointer-events: none;
+}
+
+#clockPageWrap.is-immersive.is-hud-visible .immersive-hint {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 #clockPageWrap.is-immersive .page-header.panel {
   border-radius: 22px;
   backdrop-filter: blur(20px);
@@ -100,15 +134,25 @@
   gap: 10px;
 }
 
+#clockPageWrap.is-immersive .clock-main,
+#clockPageWrap.is-immersive aside.panel {
+  box-shadow: 0 26px 60px rgba(4, 10, 21, 0.36);
+}
+
 #clockPageWrap.is-immersive .clock-main::before {
   width: 760px;
   height: 760px;
   background: radial-gradient(circle, rgba(114, 168, 255, 0.26), rgba(79, 227, 209, 0.08) 42%, transparent 74%);
 }
 
+#clockPageWrap.is-immersive .time-wrap {
+  animation: clock-breathe 7.5s ease-in-out infinite;
+}
+
 #clockPageWrap.is-immersive .time-main {
   font-size: clamp(4rem, 12vw, 9.6rem);
   min-width: 14.4ch;
+  text-shadow: 0 0 18px rgba(114, 168, 255, 0.12), 0 0 34px rgba(79, 227, 209, 0.14);
 }
 
 #clockPageWrap.is-immersive .time-main-clock {
@@ -128,10 +172,21 @@
 
 #clockPageWrap.is-immersive .countdown-display {
   font-size: clamp(2.4rem, 4vw, 3rem);
+  text-shadow: 0 0 18px rgba(79, 227, 209, 0.12);
 }
 
 #clockPageWrap.is-immersive .panel-inner {
   padding: 16px 18px;
+}
+
+@keyframes clock-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.01);
+  }
 }
 
 @media (max-width: 1200px) {
