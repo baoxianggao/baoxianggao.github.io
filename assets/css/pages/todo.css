@@ -6,33 +6,64 @@
   gap: 12px;
 }
 
+.todo-form-panel,
+.todo-main-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .todo-list {
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.todo-filter-grid {
+  display: grid;
+  grid-template-columns: 180px minmax(180px, 1fr) repeat(3, minmax(160px, 220px)) auto;
+  gap: 10px;
 }
 
 .todo-item {
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: 16px;
+  padding: 14px;
   background: rgba(14, 21, 35, 0.75);
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 8px;
+  gap: 10px;
+}
+
+.todo-item.is-overdue {
+  border-color: rgba(255, 107, 107, 0.42);
+  box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.12);
+}
+
+.todo-item-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .todo-title {
   margin: 0;
   font-size: 15px;
+  font-family: var(--font-title);
 }
 
 .todo-meta {
   color: var(--text-sub);
   font-size: 12px;
+  margin-top: 6px;
 }
 
 .todo-actions {
@@ -40,17 +71,29 @@
   flex-wrap: wrap;
   gap: 6px;
   align-self: center;
+  justify-content: flex-end;
 }
 
 .inline-form {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .inline-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.overdue-pill {
+  border-color: rgba(255, 107, 107, 0.5);
+  color: #ffc5c5;
+}
+
+@media (max-width: 1320px) {
+  .todo-filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1200px) {
@@ -60,7 +103,13 @@
 }
 
 @media (max-width: 768px) {
-  .inline-2 {
+  .inline-2,
+  .todo-filter-grid,
+  .todo-item {
     grid-template-columns: 1fr;
+  }
+
+  .todo-actions {
+    justify-content: flex-start;
   }
 }

@@ -43,6 +43,16 @@
   font-size: 13px;
 }
 
+.result-meta[data-tone="error"] {
+  border-color: rgba(255, 107, 107, 0.42);
+  color: #ffc8c8;
+}
+
+.result-meta[data-tone="success"] {
+  border-color: rgba(47, 211, 140, 0.35);
+  color: #c1f2d8;
+}
+
 .json-summary-grid {
   display: grid;
   grid-template-columns: 1fr;

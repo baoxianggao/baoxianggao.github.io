@@ -1,6 +1,8 @@
 /**
  * @typedef {"none"|"hourly"|"daily"|"weekly"|"monthly"} RepeatRule
  * @typedef {"todo"|"doing"|"done"|"archived"} TodoStatus
+ * @typedef {"pomodoro"|"shortBreak"|"longBreak"|"custom"} FocusMode
+ * @typedef {"running"|"completed"|"cancelled"} FocusStatus
  *
  * @typedef {Object} TodoItem
  * @property {string} id
@@ -13,6 +15,44 @@
  * @property {string[]} tags
  * @property {string} createdAtISO
  * @property {string} updatedAtISO
+ *
+ * @typedef {Object} QuickLink
+ * @property {string} id
+ * @property {string} title
+ * @property {string} url
+ * @property {string} category
+ * @property {string[]} tags
+ * @property {string} description
+ * @property {boolean} pinned
+ * @property {boolean} showOnHome
+ * @property {boolean} showInLauncher
+ * @property {string} createdAtISO
+ * @property {string} updatedAtISO
+ *
+ * @typedef {Object} FocusSession
+ * @property {string} id
+ * @property {FocusMode} mode
+ * @property {number} durationMinutes
+ * @property {string} startedAtISO
+ * @property {string} endedAtISO
+ * @property {FocusStatus} status
+ * @property {string} relatedTodoId
+ * @property {string} note
+ *
+ * @typedef {Object} FocusSettings
+ * @property {number} pomodoroMinutes
+ * @property {number} shortBreakMinutes
+ * @property {number} longBreakMinutes
+ * @property {boolean} autoStartBreak
+ * @property {boolean} autoStartNext
+ * @property {boolean} muted
+ *
+ * @typedef {Object} AppSnapshot
+ * @property {string} id
+ * @property {string} createdAtISO
+ * @property {string} version
+ * @property {string[]} keys
+ * @property {Record<string, unknown>} payload
  *
  * @typedef {Object} ScheduleEvent
  * @property {string} id
@@ -36,20 +76,48 @@ export const STORAGE_KEYS = Object.freeze({
   editorDocs: "bxg.tools.v1.editor_docs",
   clock: "bxg.tools.v1.clock",
   holidayCache: "bxg.tools.v1.holiday_cache",
-  blogPosts: "bxg.tools.v1.blog_posts"
+  blogPosts: "bxg.tools.v1.blog_posts",
+  links: "bxg.tools.v1.links",
+  focusSessions: "bxg.tools.v1.focus_sessions",
+  focusSettings: "bxg.tools.v1.focus_settings",
+  launcherRecent: "bxg.tools.v1.launcher_recent",
+  dataSnapshots: "bxg.tools.v1.data_snapshots"
 });
 
-const DEFAULT_SETTINGS = {
+export const DEFAULT_SETTINGS = Object.freeze({
   language: "zh-CN",
   timezone: "Asia/Shanghai",
-  theme: "pro-minimal"
-};
+  theme: "pro-minimal",
+  jsonToolboxRecentSamples: []
+});
 
-function deepClone(value) {
+export const DEFAULT_CLOCK_STATE = Object.freeze({
+  countdownTargetISO: "",
+  remainingMs: 0,
+  running: false,
+  muted: false,
+  source: "manual",
+  mode: "",
+  label: "",
+  relatedTodoId: "",
+  returnHref: "",
+  sessionId: ""
+});
+
+export const DEFAULT_FOCUS_SETTINGS = Object.freeze({
+  pomodoroMinutes: 25,
+  shortBreakMinutes: 5,
+  longBreakMinutes: 15,
+  autoStartBreak: false,
+  autoStartNext: false,
+  muted: false
+});
+
+export function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function safeParse(value, fallback) {
+export function safeParse(value, fallback) {
   try {
     return value ? JSON.parse(value) : deepClone(fallback);
   } catch (_) {
@@ -57,7 +125,7 @@ function safeParse(value, fallback) {
   }
 }
 
-function emitStateChanged(key, value) {
+export function emitStateChanged(key, value) {
   window.dispatchEvent(
     new CustomEvent("bxg:state-changed", {
       detail: { key, value }
@@ -65,14 +133,19 @@ function emitStateChanged(key, value) {
   );
 }
 
-function uid(prefix = "id") {
+export function removeState(key) {
+  localStorage.removeItem(key);
+  emitStateChanged(key, null);
+}
+
+export function uid(prefix = "id") {
   if (window.crypto?.randomUUID) {
     return `${prefix}_${window.crypto.randomUUID()}`;
   }
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function toISO(value, fallbackISO = new Date().toISOString()) {
+export function toISO(value, fallbackISO = new Date().toISOString()) {
   if (!value) {
     return fallbackISO;
   }
@@ -83,18 +156,91 @@ function toISO(value, fallbackISO = new Date().toISOString()) {
   return new Date(ms).toISOString();
 }
 
-function normalizeTags(tags) {
+export function normalizeTags(tags, limit = 8) {
   if (!Array.isArray(tags)) {
     if (typeof tags === "string") {
       return tags
         .split(",")
         .map((item) => item.trim())
         .filter(Boolean)
-        .slice(0, 8);
+        .slice(0, limit);
     }
     return [];
   }
-  return tags.map((item) => String(item).trim()).filter(Boolean).slice(0, 8);
+  return tags.map((item) => String(item).trim()).filter(Boolean).slice(0, limit);
+}
+
+function normalizeJsonToolboxSamples(samples) {
+  if (!Array.isArray(samples)) {
+    return [];
+  }
+  return samples
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+export function normalizeSettings(settings) {
+  const incoming = typeof settings === "object" && settings ? settings : {};
+  return {
+    ...DEFAULT_SETTINGS,
+    ...incoming,
+    jsonToolboxRecentSamples: normalizeJsonToolboxSamples(incoming.jsonToolboxRecentSamples)
+  };
+}
+
+export function normalizeClockState(state) {
+  const incoming = typeof state === "object" && state ? state : {};
+  return {
+    ...DEFAULT_CLOCK_STATE,
+    ...incoming,
+    countdownTargetISO: incoming.countdownTargetISO ? toISO(incoming.countdownTargetISO, "") : "",
+    remainingMs: Math.max(0, Number(incoming.remainingMs) || 0),
+    running: Boolean(incoming.running),
+    muted: Boolean(incoming.muted),
+    source: String(incoming.source || DEFAULT_CLOCK_STATE.source),
+    mode: String(incoming.mode || ""),
+    label: String(incoming.label || ""),
+    relatedTodoId: String(incoming.relatedTodoId || ""),
+    returnHref: String(incoming.returnHref || ""),
+    sessionId: String(incoming.sessionId || "")
+  };
+}
+
+/**
+ * @template T
+ * @param {string} key
+ * @param {T} fallback
+ * @returns {T}
+ */
+export function getState(key, fallback) {
+  const raw = localStorage.getItem(key);
+  if (raw === null) {
+    return deepClone(fallback);
+  }
+  return safeParse(raw, fallback);
+}
+
+/**
+ * @param {string} key
+ * @param {unknown} value
+ */
+export function setState(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+  emitStateChanged(key, value);
+}
+
+export function getSettings() {
+  return normalizeSettings(getState(STORAGE_KEYS.settings, DEFAULT_SETTINGS));
+}
+
+export function updateSettings(patch) {
+  const next = normalizeSettings({
+    ...getSettings(),
+    ...(typeof patch === "object" && patch ? patch : {})
+  });
+  setState(STORAGE_KEYS.settings, next);
+  return next;
 }
 
 /**
@@ -120,29 +266,6 @@ function normalizeTodo(todo) {
     createdAtISO: toISO(incoming.createdAtISO || nowISO),
     updatedAtISO: toISO(incoming.updatedAtISO || nowISO)
   };
-}
-
-/**
- * @template T
- * @param {string} key
- * @param {T} fallback
- * @returns {T}
- */
-export function getState(key, fallback) {
-  const raw = localStorage.getItem(key);
-  if (raw === null) {
-    return deepClone(fallback);
-  }
-  return safeParse(raw, fallback);
-}
-
-/**
- * @param {string} key
- * @param {unknown} value
- */
-export function setState(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-  emitStateChanged(key, value);
 }
 
 function getTodosRaw() {
@@ -369,10 +492,8 @@ export function listUpcomingEvents(hours = 72) {
 }
 
 export function initializeDefaults() {
-  const settings = getState(STORAGE_KEYS.settings, null);
-  if (!settings) {
-    setState(STORAGE_KEYS.settings, DEFAULT_SETTINGS);
-  }
+  setState(STORAGE_KEYS.settings, normalizeSettings(getState(STORAGE_KEYS.settings, DEFAULT_SETTINGS)));
+
   if (localStorage.getItem(STORAGE_KEYS.todos) === null) {
     setState(STORAGE_KEYS.todos, []);
   }
@@ -382,22 +503,46 @@ export function initializeDefaults() {
   if (localStorage.getItem(STORAGE_KEYS.editorDocs) === null) {
     setState(STORAGE_KEYS.editorDocs, []);
   }
-  if (localStorage.getItem(STORAGE_KEYS.clock) === null) {
-    setState(STORAGE_KEYS.clock, { countdownTargetISO: "", remainingMs: 0, running: false, muted: false });
-  }
+  setState(STORAGE_KEYS.clock, normalizeClockState(getState(STORAGE_KEYS.clock, DEFAULT_CLOCK_STATE)));
+
   if (localStorage.getItem(STORAGE_KEYS.holidayCache) === null) {
     setState(STORAGE_KEYS.holidayCache, { updatedAtISO: "", years: {} });
   }
   if (localStorage.getItem(STORAGE_KEYS.blogPosts) === null) {
     setState(STORAGE_KEYS.blogPosts, []);
   }
+  if (localStorage.getItem(STORAGE_KEYS.links) === null) {
+    setState(STORAGE_KEYS.links, []);
+  }
+  if (localStorage.getItem(STORAGE_KEYS.focusSessions) === null) {
+    setState(STORAGE_KEYS.focusSessions, []);
+  }
+  setState(
+    STORAGE_KEYS.focusSettings,
+    {
+      ...DEFAULT_FOCUS_SETTINGS,
+      ...getState(STORAGE_KEYS.focusSettings, DEFAULT_FOCUS_SETTINGS)
+    }
+  );
+  if (localStorage.getItem(STORAGE_KEYS.launcherRecent) === null) {
+    setState(STORAGE_KEYS.launcherRecent, []);
+  }
+  if (localStorage.getItem(STORAGE_KEYS.dataSnapshots) === null) {
+    setState(STORAGE_KEYS.dataSnapshots, []);
+  }
 }
 
 export function onStateChanged(handler) {
-  const fn = (event) => handler(event.detail);
-  window.addEventListener("bxg:state-changed", fn);
-  window.addEventListener("storage", (event) => {
+  const customHandler = (event) => handler(event.detail);
+  const storageHandler = (event) => {
     handler({ key: event.key, value: safeParse(event.newValue, null) });
-  });
-  return () => window.removeEventListener("bxg:state-changed", fn);
+  };
+
+  window.addEventListener("bxg:state-changed", customHandler);
+  window.addEventListener("storage", storageHandler);
+
+  return () => {
+    window.removeEventListener("bxg:state-changed", customHandler);
+    window.removeEventListener("storage", storageHandler);
+  };
 }

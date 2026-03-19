@@ -1,4 +1,5 @@
 import { bootI18n, tr, applyLangToLinks, setText } from "../core/i18n.js";
+import { mountLauncher } from "../core/launcher.js";
 import { bootTheme } from "../core/theme.js";
 
 bootTheme();
@@ -45,4 +46,5 @@ applyStaticI18n();
 inputEl.addEventListener("input", renderPreview);
 exportBtn.addEventListener("click", exportPdf);
 renderPreview();
+mountLauncher();
 applyLangToLinks();

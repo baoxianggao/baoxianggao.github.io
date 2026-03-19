@@ -356,9 +356,136 @@
   --accent-card-b: rgba(26, 188, 233, 0.18);
 }
 
+body.launcher-open {
+  overflow: hidden;
+}
+
+.launcher-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.launcher-trigger-pill {
+  padding-inline: 8px;
+}
+
+.launcher-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+}
+
+.launcher-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 8, 16, 0.58);
+  backdrop-filter: blur(8px);
+}
+
+.launcher-panel {
+  position: relative;
+  z-index: 1;
+  width: min(820px, calc(100vw - 24px));
+  margin: 7vh auto 0;
+}
+
+.launcher-panel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.launcher-head,
+.launcher-search-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.launcher-head-copy,
+.launcher-caption {
+  font-size: 13px;
+}
+
+.launcher-search-input {
+  flex: 1;
+  min-width: min(320px, 100%);
+}
+
+.launcher-shortcuts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.launcher-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(62vh, 640px);
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.launcher-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at top right, rgba(79, 227, 209, 0.12), transparent 38%),
+    color-mix(in srgb, var(--card-strong) 82%, transparent);
+  transition: border-color 180ms var(--ease-out), transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
+}
+
+.launcher-item:hover,
+.launcher-item.is-active {
+  transform: translateY(-1px);
+  border-color: rgba(79, 227, 209, 0.52);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.18);
+}
+
+.launcher-item-main {
+  min-width: 0;
+}
+
+.launcher-item-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.launcher-item-subtitle {
+  margin-top: 6px;
+  color: var(--text-sub);
+  font-size: 13px;
+}
+
+.launcher-item-arrow {
+  color: var(--text-sub);
+  font-size: 18px;
+}
+
+.launcher-empty {
+  padding: 22px;
+}
+
 @media (max-width: 768px) {
   .stat-row,
   .split {
     grid-template-columns: 1fr;
+  }
+
+  .launcher-panel {
+    margin-top: 3vh;
   }
 }

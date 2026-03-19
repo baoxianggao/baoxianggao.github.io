@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
     <title id="jsonPageTitle">BaoXiangGao Tools - JSON 工具箱</title>
     <link rel="stylesheet" href="/assets/css/tokens.css" />
     <link rel="stylesheet" href="/assets/css/base.css" />
@@ -96,9 +97,16 @@
               <div class="field" style="margin-top: 16px">
                 <span class="field-label" id="jsonPathLabel">路径提取</span>
                 <input id="jsonPathInput" class="input" placeholder="例如：tools[0]" />
-                <button class="btn" id="btnExtractPath">提取路径</button>
+                <div class="toolbar">
+                  <button class="btn" id="btnExtractPath">提取路径</button>
+                  <button class="btn" id="btnCopyPathResult">复制路径结果</button>
+                </div>
               </div>
               <div id="jsonPathResult" class="hash-output" style="margin-top: 12px">--</div>
+              <div class="field" style="margin-top: 16px">
+                <span class="field-label" id="jsonRecentLabel">最近样本</span>
+                <div id="jsonRecentSamples" class="chips"></div>
+              </div>
             </div>
           </aside>
         </section>

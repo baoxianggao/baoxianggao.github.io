@@ -33,6 +33,12 @@
   padding-right: 4px;
 }
 
+.doc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .doc-card {
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -146,6 +152,28 @@
   color: var(--text-sub);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.editor-outline-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.outline-chip {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card-strong) 78%, transparent);
+  color: var(--text-sub);
+}
+
+.outline-chip.depth-2 {
+  margin-left: 14px;
+}
+
+.outline-chip.depth-3 {
+  margin-left: 28px;
 }
 
 .editor-textarea {

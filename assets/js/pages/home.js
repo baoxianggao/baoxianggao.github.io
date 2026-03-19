@@ -1,4 +1,5 @@
 import {
+  DEFAULT_CLOCK_STATE,
   STORAGE_KEYS,
   getState,
   setState,
@@ -8,10 +9,15 @@ import {
   onStateChanged
 } from "../core/store.js";
 import { estimateReadingMinutes, listBlogPosts } from "../core/blog.js";
-import { formatDate, formatDayKey, formatTime } from "../core/date.js";
-import { resolveWeatherByGeoOrCity, geocodeCity, getWeatherByCoords } from "../core/weather.js";
+import { formatDate, formatDateTime, formatDayKey, formatTime } from "../core/date.js";
+import { getActiveFocusSession, getTodayFocusSummary } from "../core/focus.js";
 import { bootI18n, getLang, isEnglish, tr, langHref, applyLangToLinks, setText, setPlaceholder } from "../core/i18n.js";
+import { mountLauncher } from "../core/launcher.js";
+import { listLinks } from "../core/links.js";
+import { getManagedStorageKeys, listSnapshots } from "../core/snapshot.js";
 import { bootTheme } from "../core/theme.js";
+import { getHomeToolCards } from "../core/tools.js";
+import { geocodeCity, getWeatherByCoords, resolveWeatherByGeoOrCity } from "../core/weather.js";
 
 initializeDefaults();
 bootTheme();
@@ -25,6 +31,9 @@ const statTodoAllEl = document.getElementById("statTodoAll");
 const statTodoTodayEl = document.getElementById("statTodoToday");
 const statTodoDoingEl = document.getElementById("statTodoDoing");
 const homeBlogListEl = document.getElementById("homeBlogList");
+const homeQuickLinksEl = document.getElementById("homeQuickLinks");
+const homeFocusSummaryEl = document.getElementById("homeFocusSummary");
+const homeDataStatusEl = document.getElementById("homeDataStatus");
 const weatherTempEl = document.getElementById("weatherTemp");
 const weatherTextEl = document.getElementById("weatherText");
 const weatherMetaEl = document.getElementById("weatherMeta");
@@ -44,63 +53,35 @@ function escapeHtml(value) {
 }
 
 function toolList() {
-  return [
-    {
-      name: tr("博客目录", "Blog Directory"),
-      desc: tr("发布文章、浏览目录与最近草稿", "Published posts, directory, and recent drafts"),
-      href: langHref("/blog/index.html")
-    },
-    {
-      name: tr("博客工作台", "Blog Studio"),
-      desc: tr("生成结构稿并发布本地博客", "Generate structured drafts and publish posts"),
-      href: langHref("/tools/blog-studio.html")
-    },
-    {
-      name: tr("全屏日历", "Calendar"),
-      desc: tr("农历、法定节假日、任务联动", "Lunar + China holidays + task sync"),
-      href: langHref("/tools/calendar.html")
-    },
-    {
-      name: tr("全屏时钟", "Clock"),
-      desc: tr("高精度时钟 + 倒计时", "High-precision clock + countdown"),
-      href: langHref("/tools/clock.html")
-    },
-    {
-      name: tr("文本编辑器", "Editor"),
-      desc: tr("Markdown/代码/图片编辑与导出", "Markdown/code/image editing + export"),
-      href: langHref("/tools/editor.html")
-    },
-    {
-      name: "TodoList",
-      desc: tr("任务管理，支持小时/日/周/月重复", "Tasks with hourly/daily/weekly/monthly recurrence"),
-      href: langHref("/tools/todo.html")
-    },
-    {
-      name: tr("Markdown 转 PDF", "Markdown to PDF"),
-      desc: tr("渲染后导出 PDF", "Preview and export PDF"),
-      href: langHref("/tools/markdown-pdf.html")
-    },
-    {
-      name: tr("JSON 工具箱", "JSON Toolbox"),
-      desc: tr("格式化、校验、JSON/YAML 转换", "Format, validate, JSON/YAML conversion"),
-      href: langHref("/tools/json-toolbox.html")
-    },
-    {
-      name: tr("颜色实验室", "Color Lab"),
-      desc: tr("调色板、对比度、CSS 变量", "Palette, contrast, CSS vars"),
-      href: langHref("/tools/color-lab.html")
-    },
-    {
-      name: tr("密码实验室", "Password Lab"),
-      desc: tr("生成密码、短语与文本哈希", "Generate passwords, passphrases, and text hashes"),
-      href: langHref("/tools/password-lab.html")
-    },
-    {
-      name: tr("单位换算台", "Unit Converter"),
-      desc: tr("长度、温度、数据体积与时间换算", "Convert length, temperature, data size, and time"),
-      href: langHref("/tools/unit-converter.html")
-    }
-  ];
+  return getHomeToolCards();
+}
+
+function formatShortDateTime(value) {
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function focusModeLabel(mode) {
+  return tr(
+    mode === "pomodoro"
+      ? "番茄钟"
+      : mode === "shortBreak"
+        ? "短休息"
+        : mode === "longBreak"
+          ? "长休息"
+          : "自定义",
+    mode === "pomodoro"
+      ? "Pomodoro"
+      : mode === "shortBreak"
+        ? "Short Break"
+        : mode === "longBreak"
+          ? "Long Break"
+          : "Custom"
+  );
 }
 
 function applyStaticI18n() {
@@ -131,6 +112,10 @@ function applyStaticI18n() {
     "Cross-tool sync is enabled: new TODOs automatically appear on Home and Calendar."
   );
 
+  setText("#homeQuickLinksTitle", "快捷收藏", "Quick Links");
+  setText("#homeQuickLinksHint", "置顶且勾选首页展示的收藏会在这里集中出现。", "Pinned links marked for Home appear here.");
+  setText("#homeQuickLinksBtn", "打开收藏", "Open Links");
+
   setText("#homeWeatherTitle", "天气", "Weather");
   setText("#weatherRefresh", "刷新天气", "Refresh Weather");
   setText("#weatherCityBtn", "按城市查询", "Search City");
@@ -141,6 +126,15 @@ function applyStaticI18n() {
   setText("#homeStatAllLabel", "待办总数", "All Todos");
   setText("#homeStatTodayLabel", "今日截止", "Due Today");
   setText("#homeStatDoingLabel", "进行中", "In Progress");
+
+  setText("#homeFocusTitle", "专注概览", "Focus Overview");
+  setText("#homeFocusHint", "查看今天的专注统计，或继续当前番茄钟。", "Check today's focus stats or resume the current session.");
+  setText("#homeFocusBtn", "打开专注中心", "Open Focus Hub");
+
+  setText("#homeDataTitle", "数据状态", "Data Status");
+  setText("#homeDataHint", "本地数据仍在本机保存，建议定期导出或备份。", "Data stays local in your browser, so regular backups are recommended.");
+  setText("#homeDataBtn", "打开数据中心", "Open Data Center");
+
   setText("#homeBlogTitle", "博客目录", "Blog Directory");
   setText("#homeBlogHint", "最近发布与本地草稿", "Recent posts and local drafts");
   setText("#homeBlogDirectoryBtn", "打开目录", "Open Directory");
@@ -153,11 +147,11 @@ function renderToolGrid() {
   toolGridEl.innerHTML = toolList()
     .map(
       (tool) => `
-      <a class="tool-card" href="${tool.href}">
-        <h3>${tool.name}</h3>
-        <p>${tool.desc}</p>
-      </a>
-    `
+        <a class="tool-card" href="${tool.href}">
+          <h3>${tool.name}</h3>
+          <p>${tool.desc}</p>
+        </a>
+      `
     )
     .join("");
 }
@@ -179,7 +173,7 @@ function renderAgenda() {
         <li class="agenda-item">
           <div class="agenda-time">${formatDate(date, "Asia/Shanghai", locale)}<br/>${formatTime(date)}</div>
           <div>
-            <div>${event.title}</div>
+            <div>${escapeHtml(event.title)}</div>
             <div class="muted" style="font-size:12px">${event.source === "todo" ? tr("来自 TODO", "From TODO") : tr("手动日程", "Manual Event")}</div>
           </div>
         </li>
@@ -195,15 +189,12 @@ function renderMiniCalendar() {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
 
-  if (isEnglish()) {
-    miniCalendarTitleEl.textContent = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(now);
-  } else {
-    miniCalendarTitleEl.textContent = `${year} 年 ${month + 1} 月`;
-  }
+  miniCalendarTitleEl.textContent = isEnglish()
+    ? new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(now)
+    : `${year} 年 ${month + 1} 月`;
 
   const weekdays = isEnglish() ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] : ["一", "二", "三", "四", "五", "六", "日"];
-  const heads = weekdays.map((w) => `<div class="mini-cal-head">${w}</div>`).join("");
-
+  const heads = weekdays.map((weekday) => `<div class="mini-cal-head">${weekday}</div>`).join("");
   const startWeekday = firstDay.getDay() === 0 ? 7 : firstDay.getDay();
   const totalDays = lastDay.getDate();
   const blocks = [];
@@ -223,8 +214,7 @@ function renderMiniCalendar() {
 
 function renderStats() {
   const todos = listTodos({ includeArchived: false });
-  const now = new Date();
-  const todayKey = formatDayKey(now);
+  const todayKey = formatDayKey(new Date());
   const todayCount = todos.filter((todo) => formatDayKey(todo.dueAtISO) === todayKey && todo.status !== "done").length;
   const doingCount = todos.filter((todo) => todo.status === "doing").length;
 
@@ -233,14 +223,111 @@ function renderStats() {
   statTodoDoingEl.textContent = String(doingCount);
 }
 
+function renderQuickLinks() {
+  const links = listLinks({ showOnHomeOnly: true, pinnedOnly: true }).slice(0, 6);
+  if (links.length === 0) {
+    homeQuickLinksEl.innerHTML = `<div class="empty-state">${tr(
+      "还没有首页收藏，去快捷收藏页置顶几项高频入口吧。",
+      "No quick links on Home yet. Pin a few entries in Link Vault."
+    )}</div>`;
+    return;
+  }
+
+  homeQuickLinksEl.innerHTML = links
+    .map(
+      (link) => `
+        <a class="home-link-card" href="${link.url.startsWith("http") ? link.url : langHref(link.url)}">
+          <div class="blog-teaser-meta">
+            <span class="pill">${escapeHtml(link.category)}</span>
+            <span class="muted">${link.showInLauncher ? tr("启动器可搜", "Launcher searchable") : tr("仅首页", "Home only")}</span>
+          </div>
+          <h3>${escapeHtml(link.title)}</h3>
+          <p>${escapeHtml(link.description || link.url)}</p>
+        </a>
+      `
+    )
+    .join("");
+}
+
+function renderFocusOverview() {
+  const session = getActiveFocusSession();
+  const summary = getTodayFocusSummary();
+  const todoMap = new Map(listTodos({ includeArchived: true }).map((todo) => [todo.id, todo]));
+
+  if (!session) {
+    homeFocusSummaryEl.innerHTML = `
+      <div class="focus-summary-main">
+        <div>
+          <strong>${tr("当前没有运行中的专注", "No active focus session")}</strong>
+          <p class="muted">${tr("今天已完成", "Completed today")} ${summary.completedPomodoros} ${tr(
+            "个番茄钟，累计",
+            "pomodoros and"
+          )} ${summary.totalMinutes} ${tr("分钟。", "minutes.")}</p>
+        </div>
+        <a class="btn btn-primary" href="${langHref("/tools/focus-hub.html")}">${tr("开始专注", "Start Focus")}</a>
+      </div>
+    `;
+    return;
+  }
+
+  const todo = todoMap.get(session.relatedTodoId);
+  homeFocusSummaryEl.innerHTML = `
+    <div class="focus-summary-main">
+      <div>
+        <strong>${tr("当前进行中", "Now in progress")} · ${focusModeLabel(session.mode)} · ${session.durationMinutes}${tr(" 分钟", " min")}</strong>
+        <p class="muted">${todo ? `${tr("关联任务", "Linked task")}: ${escapeHtml(todo.title)} · ` : ""}${tr(
+          "开始于",
+          "Started"
+        )} ${formatShortDateTime(session.startedAtISO)}</p>
+      </div>
+      <div class="toolbar">
+        <a class="btn btn-primary" href="${langHref("/tools/clock.html")}">${tr("继续计时", "Resume Timer")}</a>
+        <a class="btn" href="${langHref("/tools/focus-hub.html")}">${tr("查看专注中心", "Open Focus Hub")}</a>
+      </div>
+    </div>
+  `;
+}
+
+function renderDataStatus() {
+  const snapshots = listSnapshots();
+  const latest = snapshots[0];
+  const clockState = getState(STORAGE_KEYS.clock, DEFAULT_CLOCK_STATE);
+
+  homeDataStatusEl.innerHTML = `
+    <div class="metric-box">
+      <div>
+        <strong>${getManagedStorageKeys().length}</strong>
+        <div class="muted">${tr("个受管数据模块", "managed data keys")}</div>
+      </div>
+    </div>
+    <div class="metric-box">
+      <div>
+        <strong>${snapshots.length}</strong>
+        <div class="muted">${tr("份本地备份", "local backups")}</div>
+      </div>
+    </div>
+    <div class="metric-box">
+      <div>
+        <strong>${latest ? formatShortDateTime(latest.createdAtISO) : "--"}</strong>
+        <div class="muted">${tr("最近备份时间", "latest backup")}</div>
+      </div>
+    </div>
+    <div class="metric-box">
+      <div>
+        <strong>${clockState.running ? tr("有活跃倒计时", "active countdown") : tr("当前无倒计时", "no countdown")}</strong>
+        <div class="muted">${tr("可从数据中心导出完整快照", "Export a full snapshot from Data Center")}</div>
+      </div>
+    </div>
+  `;
+}
+
 function renderRecentBlogs() {
   const posts = listBlogPosts({ includeDrafts: true }).slice(0, 4);
   if (posts.length === 0) {
-    homeBlogListEl.innerHTML = `
-      <div class="agenda-item">
-        <span class="muted">${tr("还没有博客内容，先去博客工作台生成第一篇结构稿。", "No blog content yet. Generate your first structured draft in Blog Studio.")}</span>
-      </div>
-    `;
+    homeBlogListEl.innerHTML = `<div class="agenda-item"><span class="muted">${tr(
+      "还没有博客内容，先去博客工作台生成第一篇结构稿。",
+      "No blog content yet. Generate your first structured draft in Blog Studio."
+    )}</span></div>`;
     return;
   }
 
@@ -302,14 +389,15 @@ async function refreshWeatherByCity(city) {
 
 function bindActions() {
   document.getElementById("quickTodo").addEventListener("click", () => {
-    window.location.href = langHref("/tools/todo.html");
+    window.location.href = langHref("/tools/todo.html?action=new");
   });
 
   document.getElementById("quickClock").addEventListener("click", () => {
     const target = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     setState(STORAGE_KEYS.clock, {
+      ...DEFAULT_CLOCK_STATE,
       countdownTargetISO: target,
-      remainingMs: 0,
+      remainingMs: 30 * 60 * 1000,
       running: true,
       muted: getState(STORAGE_KEYS.clock, { muted: false }).muted || false
     });
@@ -317,16 +405,19 @@ function bindActions() {
   });
 
   document.getElementById("quickEditor").addEventListener("click", () => {
-    window.location.href = langHref("/tools/editor.html");
+    window.location.href = langHref("/tools/editor.html?action=new");
   });
 
   document.getElementById("quickBlog").addEventListener("click", () => {
-    window.location.href = langHref("/tools/blog-studio.html");
+    window.location.href = langHref("/tools/blog-studio.html?action=new");
   });
 
   document.getElementById("refreshAll").addEventListener("click", () => {
     renderAgenda();
     renderStats();
+    renderQuickLinks();
+    renderFocusOverview();
+    renderDataStatus();
     renderRecentBlogs();
     renderMiniCalendar();
     refreshWeatherByGeo();
@@ -348,18 +439,33 @@ function bootstrap() {
   renderAgenda();
   renderMiniCalendar();
   renderStats();
+  renderQuickLinks();
+  renderFocusOverview();
+  renderDataStatus();
   renderRecentBlogs();
   bindActions();
   refreshWeatherByGeo();
+  mountLauncher();
   applyLangToLinks();
 
   onStateChanged((detail) => {
     if ([STORAGE_KEYS.todos, STORAGE_KEYS.events].includes(detail.key)) {
       renderAgenda();
       renderStats();
+      renderFocusOverview();
     }
     if (detail.key === STORAGE_KEYS.blogPosts) {
       renderRecentBlogs();
+    }
+    if (detail.key === STORAGE_KEYS.links) {
+      renderQuickLinks();
+    }
+    if ([STORAGE_KEYS.focusSessions, STORAGE_KEYS.clock].includes(detail.key)) {
+      renderFocusOverview();
+      renderDataStatus();
+    }
+    if (detail.key === STORAGE_KEYS.dataSnapshots) {
+      renderDataStatus();
     }
   });
 }

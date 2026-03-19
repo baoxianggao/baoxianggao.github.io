@@ -1,4 +1,5 @@
 import { applyLangToLinks, bootI18n, isEnglish, setText, tr } from "../core/i18n.js";
+import { mountLauncher } from "../core/launcher.js";
 import { bootTheme } from "../core/theme.js";
 
 bootTheme();
@@ -221,6 +222,7 @@ function bootstrap() {
   populateUnitOptions();
   convertValue();
   bindActions();
+  mountLauncher();
   applyLangToLinks();
 }
 

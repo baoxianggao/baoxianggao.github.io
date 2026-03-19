@@ -8,6 +8,7 @@ import { formatDateTime, formatDayKey } from "../core/date.js";
 import { initImmersiveFullscreen } from "../core/fullscreen.js";
 import { getHolidayMap, syncHolidayFromRemote, readHolidayCache } from "../core/holiday.js";
 import { bootI18n, isEnglish, tr, applyLangToLinks, setText } from "../core/i18n.js";
+import { mountLauncher } from "../core/launcher.js";
 import { bootTheme } from "../core/theme.js";
 
 initializeDefaults();
@@ -374,6 +375,7 @@ async function bootstrap() {
   renderDayDetail(currentSelectedDay);
   updateSyncStatusFromCache();
   bindActions();
+  mountLauncher();
   applyLangToLinks();
 }
 

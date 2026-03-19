@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
     <title id="blogDirectoryPageTitle">BaoXiangGao Blog - 博客目录</title>
     <link rel="stylesheet" href="/assets/css/tokens.css" />
     <link rel="stylesheet" href="/assets/css/base.css" />
@@ -55,6 +56,14 @@
               <span class="field-label" id="blogSearchLabel">搜索</span>
               <input id="blogDirectorySearch" class="input" placeholder="搜索标题、摘要、标签" />
             </label>
+            <label class="field">
+              <span class="field-label" id="blogStatusLabel">状态</span>
+              <select id="blogStatusFilter" class="select">
+                <option value="published">仅已发布</option>
+                <option value="draft">仅草稿</option>
+                <option value="all">全部状态</option>
+              </select>
+            </label>
             <div class="field">
               <span class="field-label" id="blogTagsLabel">标签</span>
               <div id="blogTagFilters" class="chips"></div>
@@ -63,6 +72,7 @@
               <span class="field-label" id="blogDraftsLabel">本地草稿</span>
               <div id="draftSummary" class="notice">暂无草稿</div>
             </div>
+            <a class="btn btn-primary" id="blogCreateDraftBtn" href="/tools/blog-studio.html?action=new">新建草稿</a>
           </div>
         </aside>
       </section>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <title id="dataCenterPageTitle">BaoXiangGao Tools - 数据中心</title>
+    <link rel="stylesheet" href="/assets/css/tokens.css" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages/data-center.css" />
+  </head>
+  <body class="page-enter">
+    <main class="fullscreen-wrap">
+      <header class="page-header panel">
+        <div class="panel-inner header-shell">
+          <div class="brand">
+            <span class="brand-kicker">Data Center</span>
+            <h1 class="brand-title" id="dataCenterBrandTitle" style="font-size: clamp(1.3rem, 2vw, 2rem)">数据中心</h1>
+            <p class="brand-desc" id="dataCenterBrandDesc">统一管理导出、导入、本地备份、模块级清空与整站重置，全部操作都保持本地优先。</p>
+          </div>
+          <div class="header-actions-inline">
+            <div class="switch-stack">
+              <div class="switch-group" data-lang-switch role="group" aria-label="Language">
+                <button class="switch-item" type="button" data-value="zh">中</button>
+                <button class="switch-item" type="button" data-value="en">EN</button>
+              </div>
+              <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
+                <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
+                <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
+                <button class="switch-item theme-mode" type="button" data-value="system">System</button>
+              </div>
+            </div>
+            <a class="btn" id="dataCenterBackHomeBtn" href="/index.html">返回首页</a>
+            <a class="btn" id="dataCenterOpenLinksBtn" href="/tools/link-vault.html">快捷收藏</a>
+          </div>
+        </div>
+      </header>
+
+      <section class="data-center-shell fill-card">
+        <div class="stack">
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="dataCenterOverviewTitle">数据总览</h2>
+                  <p class="muted" id="dataCenterOverviewHint">导出完整快照，或先生成一份本地备份再继续清理。</p>
+                </div>
+              </div>
+              <div class="stat-row">
+                <div class="stat-box"><span id="dataCenterManagedKeysLabel">受管模块</span><strong id="dataCenterManagedKeys">0</strong></div>
+                <div class="stat-box"><span id="dataCenterBackupCountLabel">本地备份</span><strong id="dataCenterBackupCount">0</strong></div>
+                <div class="stat-box"><span id="dataCenterLatestBackupLabel">最近备份</span><strong id="dataCenterLatestBackup">--</strong></div>
+              </div>
+
+              <div class="toolbar" style="margin-top: 16px">
+                <button class="btn btn-primary" id="exportSnapshotBtn" type="button">导出完整快照</button>
+                <button class="btn" id="backupNowBtn" type="button">立即备份当前数据</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="dataCenterImportTitle">导入快照</h2>
+                  <p class="muted" id="dataCenterImportHint">先预览，再决定是否导入。导入前会自动生成当前数据备份。</p>
+                </div>
+                <button class="btn" id="selectImportFileBtn" type="button">选择快照文件</button>
+              </div>
+              <input id="importSnapshotInput" type="file" hidden accept="application/json,.json" />
+              <div id="importPreview" class="empty-state" style="margin-top: 14px">暂无待导入快照。</div>
+              <div class="toolbar" style="margin-top: 14px">
+                <button class="btn btn-primary" id="applyImportBtn" type="button" disabled>确认导入</button>
+                <button class="btn" id="clearImportPreviewBtn" type="button">清空预览</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel data-center-backup-panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="dataCenterBackupTitle">本地备份历史</h2>
+                  <p class="muted" id="dataCenterBackupHint">自动备份只保留最近 10 份，可从这里预览或下载。</p>
+                </div>
+              </div>
+              <div id="backupList" class="backup-list"></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="stack">
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="dataCenterModuleTitle">模块级清空</h2>
+                  <p class="muted" id="dataCenterModuleHint">只清掉指定模块，不影响其他本地数据。</p>
+                </div>
+              </div>
+              <div id="clearGroupGrid" class="clear-group-grid"></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="dataCenterDangerTitle">整站重置</h2>
+                  <p class="muted" id="dataCenterDangerHint">这会清除所有工具数据、偏好和本地备份，请谨慎使用。</p>
+                </div>
+              </div>
+              <div class="notice" id="dataCenterDangerNotice">建议先执行完整导出，或至少生成一份本地备份。</div>
+              <div class="toolbar" style="margin-top: 16px">
+                <button class="btn btn-danger" id="resetAllBtn" type="button">重置整站数据</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/assets/js/pages/data-center.js"></script>
+  </body>
+</html>

@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
     <title id="homePageTitle">BaoXiangGao Tools - 主页</title>
     <link rel="stylesheet" href="/assets/css/tokens.css" />
     <link rel="stylesheet" href="/assets/css/base.css" />
@@ -66,6 +67,19 @@
               <p class="notice" id="homeLinkNotice" style="margin-top: 12px">跨工具联动已启用：TODO 新增后会自动同步到首页与日历。</p>
             </div>
           </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="homeQuickLinksTitle">快捷收藏</h2>
+                  <p class="muted" id="homeQuickLinksHint">置顶且勾选首页展示的收藏会在这里集中出现。</p>
+                </div>
+                <a class="btn btn-ghost" id="homeQuickLinksBtn" href="/tools/link-vault.html">打开收藏</a>
+              </div>
+              <div id="homeQuickLinks" class="home-link-grid" style="margin-top: 12px"></div>
+            </div>
+          </article>
         </div>
 
         <div class="stack">
@@ -114,6 +128,32 @@
                   <strong id="statTodoDoing">0</strong>
                 </div>
               </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="homeFocusTitle">专注概览</h2>
+                  <p class="muted" id="homeFocusHint">查看今天的专注统计，或继续当前番茄钟。</p>
+                </div>
+                <a class="btn btn-ghost" id="homeFocusBtn" href="/tools/focus-hub.html">打开专注中心</a>
+              </div>
+              <div id="homeFocusSummary" class="focus-summary-card" style="margin-top: 12px"></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="homeDataTitle">数据状态</h2>
+                  <p class="muted" id="homeDataHint">本地数据仍在本机保存，建议定期导出或备份。</p>
+                </div>
+                <a class="btn btn-ghost" id="homeDataBtn" href="/tools/data-center.html">打开数据中心</a>
+              </div>
+              <div id="homeDataStatus" class="data-status-list" style="margin-top: 12px"></div>
             </div>
           </article>
 

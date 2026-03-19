@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <title id="linkVaultPageTitle">BaoXiangGao Tools - 快捷收藏</title>
+    <link rel="stylesheet" href="/assets/css/tokens.css" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages/link-vault.css" />
+  </head>
+  <body class="page-enter">
+    <main class="fullscreen-wrap">
+      <header class="page-header panel">
+        <div class="panel-inner header-shell">
+          <div class="brand">
+            <span class="brand-kicker">Link Vault</span>
+            <h1 class="brand-title" id="linkVaultBrandTitle" style="font-size: clamp(1.3rem, 2vw, 2rem)">快捷收藏</h1>
+            <p class="brand-desc" id="linkVaultBrandDesc">把常用网址、站内入口和命令说明整理到一个本地优先的收藏库里。</p>
+          </div>
+          <div class="header-actions-inline">
+            <div class="switch-stack">
+              <div class="switch-group" data-lang-switch role="group" aria-label="Language">
+                <button class="switch-item" type="button" data-value="zh">中</button>
+                <button class="switch-item" type="button" data-value="en">EN</button>
+              </div>
+              <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
+                <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
+                <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
+                <button class="switch-item theme-mode" type="button" data-value="system">System</button>
+              </div>
+            </div>
+            <a class="btn" id="linkVaultBackHomeBtn" href="/index.html">返回首页</a>
+            <a class="btn" id="linkVaultOpenDataCenterBtn" href="/tools/data-center.html">数据中心</a>
+          </div>
+        </div>
+      </header>
+
+      <section class="link-vault-shell fill-card">
+        <aside class="panel">
+          <div class="panel-inner link-vault-sidebar">
+            <div class="panel-heading">
+              <div>
+                <h2 class="panel-title" id="linkVaultFormTitle">新增收藏</h2>
+                <p class="muted" id="linkVaultFormHint">支持外链、站内入口和命令说明文本。</p>
+              </div>
+              <span class="pill" id="linkVaultModePill">New</span>
+            </div>
+
+            <form id="linkForm" class="inline-form">
+              <label class="field">
+                <span class="field-label" id="linkTitleLabel">标题</span>
+                <input id="linkTitleInput" class="input" placeholder="例如：博客目录" required />
+              </label>
+              <label class="field">
+                <span class="field-label" id="linkUrlLabel">地址</span>
+                <input id="linkUrlInput" class="input" placeholder="https://example.com 或 /blog/index.html" required />
+              </label>
+              <div class="grid-two">
+                <label class="field">
+                  <span class="field-label" id="linkCategoryLabel">分类</span>
+                  <input id="linkCategoryInput" class="input" placeholder="workspace / reading / tools" />
+                </label>
+                <label class="field">
+                  <span class="field-label" id="linkTagsLabel">标签</span>
+                  <input id="linkTagsInput" class="input" placeholder="blog, publish, note" />
+                </label>
+              </div>
+              <label class="field">
+                <span class="field-label" id="linkDescriptionLabel">说明 / 命令</span>
+                <textarea id="linkDescriptionInput" class="textarea compact-textarea" placeholder="例如：pnpm dev 或 记录打开路径的说明"></textarea>
+              </label>
+
+              <div class="link-check-grid">
+                <label class="link-check-card">
+                  <input id="linkPinnedInput" type="checkbox" />
+                  <span>
+                    <strong id="linkPinnedLabel">置顶</strong>
+                    <small id="linkPinnedHint">优先出现在列表顶部</small>
+                  </span>
+                </label>
+                <label class="link-check-card">
+                  <input id="linkShowOnHomeInput" type="checkbox" />
+                  <span>
+                    <strong id="linkHomeLabel">展示到首页</strong>
+                    <small id="linkHomeHint">最多展示 6 个置顶收藏</small>
+                  </span>
+                </label>
+                <label class="link-check-card">
+                  <input id="linkShowInLauncherInput" type="checkbox" checked />
+                  <span>
+                    <strong id="linkLauncherLabel">展示到启动器</strong>
+                    <small id="linkLauncherHint">支持全局命令面板搜索</small>
+                  </span>
+                </label>
+              </div>
+
+              <div class="toolbar">
+                <button class="btn btn-primary" id="linkSubmitBtn" type="submit">保存收藏</button>
+                <button class="btn" id="linkCancelBtn" type="button">取消编辑</button>
+              </div>
+            </form>
+          </div>
+        </aside>
+
+        <div class="link-vault-main">
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="linkVaultOverviewTitle">收藏概览</h2>
+                  <p class="muted" id="linkVaultOverviewHint">筛选、搜索，并预览会出现在首页的收藏。</p>
+                </div>
+                <span class="pill" id="linkCountPill">0</span>
+              </div>
+
+              <div class="stat-row">
+                <div class="stat-box"><span id="linkStatTotalLabel">总收藏</span><strong id="linkStatTotal">0</strong></div>
+                <div class="stat-box"><span id="linkStatPinnedLabel">置顶</span><strong id="linkStatPinned">0</strong></div>
+                <div class="stat-box"><span id="linkStatHomeLabel">首页可见</span><strong id="linkStatHome">0</strong></div>
+              </div>
+
+              <div class="link-toolbar" style="margin-top: 14px">
+                <input id="linkSearchInput" class="input" placeholder="搜索标题、分类、标签、说明" />
+                <select id="linkCategoryFilter" class="select">
+                  <option value="">全部分类</option>
+                </select>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="linkVaultHomePreviewTitle">首页收藏预览</h2>
+                  <p class="muted" id="linkVaultHomePreviewHint">这里只展示置顶且勾选“首页可见”的前 6 项。</p>
+                </div>
+              </div>
+              <div id="linkHomePreview" class="link-preview-grid"></div>
+            </div>
+          </article>
+
+          <article class="panel link-list-panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="linkVaultListTitle">全部收藏</h2>
+                  <p class="muted" id="linkVaultListHint">支持编辑、复制链接和快速跳转。</p>
+                </div>
+              </div>
+              <div id="linkList" class="link-list"></div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/assets/js/pages/link-vault.js"></script>
+  </body>
+</html>

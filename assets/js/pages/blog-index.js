@@ -1,5 +1,6 @@
 import { estimateReadingMinutes, listBlogPosts } from "../core/blog.js";
 import { applyLangToLinks, bootI18n, isEnglish, langHref, setPlaceholder, setText, tr } from "../core/i18n.js";
+import { mountLauncher } from "../core/launcher.js";
 import { bootTheme } from "../core/theme.js";
 
 bootTheme();
@@ -8,12 +9,14 @@ bootI18n();
 const featuredPostWrapEl = document.getElementById("featuredPostWrap");
 const blogDirectoryStatsEl = document.getElementById("blogDirectoryStats");
 const blogDirectorySearchEl = document.getElementById("blogDirectorySearch");
+const blogStatusFilterEl = document.getElementById("blogStatusFilter");
 const blogTagFiltersEl = document.getElementById("blogTagFilters");
 const draftSummaryEl = document.getElementById("draftSummary");
 const blogCardGridEl = document.getElementById("blogCardGrid");
 
 let selectedTag = "";
 let searchKeyword = "";
+let selectedStatus = "published";
 
 function escapeHtml(value) {
   return String(value)
@@ -46,6 +49,10 @@ function templateLabel(template) {
   return map[template] || template;
 }
 
+function statusLabel(status) {
+  return status === "published" ? tr("已发布", "Published") : tr("草稿", "Draft");
+}
+
 function getPosts() {
   const all = listBlogPosts({ includeDrafts: true });
   return {
@@ -55,7 +62,7 @@ function getPosts() {
   };
 }
 
-function filterPublished(posts) {
+function filterPosts(posts) {
   return posts.filter((post) => {
     const matchesSearch = !searchKeyword
       ? true
@@ -65,12 +72,21 @@ function filterPublished(posts) {
   });
 }
 
+function pickVisiblePosts() {
+  const { all, published, drafts } = getPosts();
+  const base = selectedStatus === "all" ? all : selectedStatus === "draft" ? drafts : published;
+  return {
+    ...getPosts(),
+    visible: filterPosts(base)
+  };
+}
+
 function renderFeatured(post) {
   if (!post) {
     featuredPostWrapEl.innerHTML = `
       <div class="empty-state">
-        <p>${tr("还没有已发布文章。先去博客工作台生成一篇结构稿并发布。", "No published posts yet. Generate a structured draft in Blog Studio and publish it.")}</p>
-        <a class="btn btn-primary" href="${langHref("/tools/blog-studio.html")}">${tr("打开博客工作台", "Open Blog Studio")}</a>
+        <p>${tr("当前筛选条件下没有文章。去博客工作台新建一篇草稿吧。", "No posts match the current filters. Create a new draft in Blog Studio.")}</p>
+        <a class="btn btn-primary" href="${langHref("/tools/blog-studio.html?action=new")}">${tr("新建草稿", "New Draft")}</a>
       </div>
     `;
     return;
@@ -81,6 +97,7 @@ function renderFeatured(post) {
       <div>
         <div class="featured-meta-row" style="margin-bottom:18px">
           <span class="pill">${templateLabel(post.template)}</span>
+          <span class="pill">${statusLabel(post.status)}</span>
           <span class="muted">${formatDate(post.publishedAtISO || post.updatedAtISO)}</span>
         </div>
         <h2>${escapeHtml(post.title)}</h2>
@@ -142,6 +159,7 @@ function renderCards(posts) {
             <span class="post-card-date">${formatDate(post.publishedAtISO || post.updatedAtISO)}</span>
           </div>
           <div>
+            <div class="chips" style="margin-bottom: 10px"><span class="tag">${statusLabel(post.status)}</span></div>
             <h3>${escapeHtml(post.title)}</h3>
             <p style="margin-top:10px">${escapeHtml(post.summary)}</p>
           </div>
@@ -156,15 +174,14 @@ function renderCards(posts) {
 }
 
 function renderDirectory() {
-  const { all, published, drafts } = getPosts();
-  const filtered = filterPublished(published);
+  const { all, published, drafts, visible } = pickVisiblePosts();
   blogDirectoryStatsEl.textContent = isEnglish()
     ? `${published.length} published / ${drafts.length} draft`
     : `${published.length} 已发布 / ${drafts.length} 草稿`;
-  renderFeatured(filtered[0] || published[0] || null);
-  renderTagFilters(published);
+  renderFeatured(visible[0] || published[0] || drafts[0] || null);
+  renderTagFilters(all);
   renderDraftSummary(drafts);
-  renderCards(filtered);
+  renderCards(visible);
   applyLangToLinks();
 }
 
@@ -181,16 +198,29 @@ function applyStaticI18n() {
   setText("#blogFeaturedPill", "精选文章", "Featured");
   setText("#blogFilterTitle", "筛选", "Filters");
   setText("#blogSearchLabel", "搜索", "Search");
+  setText("#blogStatusLabel", "状态", "Status");
   setText("#blogTagsLabel", "标签", "Tags");
   setText("#blogDraftsLabel", "本地草稿", "Local Drafts");
+  setText("#blogCreateDraftBtn", "新建草稿", "New Draft");
   setText("#blogDirectoryListTitle", "全部文章", "All Posts");
   setText("#blogDirectoryListHint", "按发布时间倒序排列", "Sorted by publish date");
   setPlaceholder("#blogDirectorySearch", "搜索标题、摘要、标签", "Search titles, summaries, tags");
+
+  blogStatusFilterEl.innerHTML = `
+    <option value="published">${tr("仅已发布", "Published only")}</option>
+    <option value="draft">${tr("仅草稿", "Draft only")}</option>
+    <option value="all">${tr("全部状态", "All statuses")}</option>
+  `;
 }
 
 function bindActions() {
   blogDirectorySearchEl.addEventListener("input", () => {
     searchKeyword = blogDirectorySearchEl.value.trim().toLowerCase();
+    renderDirectory();
+  });
+
+  blogStatusFilterEl.addEventListener("change", () => {
+    selectedStatus = blogStatusFilterEl.value;
     renderDirectory();
   });
 }
@@ -199,6 +229,7 @@ function bootstrap() {
   applyStaticI18n();
   renderDirectory();
   bindActions();
+  mountLauncher();
   applyLangToLinks();
 }
 

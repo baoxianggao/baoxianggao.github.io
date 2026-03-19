@@ -1,5 +1,7 @@
 import { applyLangToLinks, bootI18n, isEnglish, setPlaceholder, setText, tr } from "../core/i18n.js";
+import { mountLauncher } from "../core/launcher.js";
 import { bootTheme } from "../core/theme.js";
+import { getSettings, updateSettings } from "../core/store.js";
 
 bootTheme();
 bootI18n();
@@ -12,6 +14,7 @@ const pathInputEl = document.getElementById("jsonPathInput");
 const pathResultEl = document.getElementById("jsonPathResult");
 const inputModePillEl = document.getElementById("jsonInputModePill");
 const outputModePillEl = document.getElementById("jsonOutputModePill");
+const recentSamplesEl = document.getElementById("jsonRecentSamples");
 
 const btnFormat = document.getElementById("btnFormatJson");
 const btnMinify = document.getElementById("btnMinifyJson");
@@ -22,6 +25,7 @@ const btnCopyOutput = document.getElementById("btnCopyOutput");
 const btnSwapJson = document.getElementById("btnSwapJson");
 const btnClearJson = document.getElementById("btnClearJson");
 const btnExtractPath = document.getElementById("btnExtractPath");
+const btnCopyPathResult = document.getElementById("btnCopyPathResult");
 
 const jsonSampleConfigBtn = document.getElementById("jsonSampleConfigBtn");
 const jsonSampleApiBtn = document.getElementById("jsonSampleApiBtn");
@@ -74,8 +78,9 @@ function setModePills(inputMode = "JSON", outputMode = "Result") {
   outputModePillEl.textContent = outputMode;
 }
 
-function setMeta(text) {
+function setMeta(text, tone = "info") {
   metaEl.textContent = text;
+  metaEl.dataset.tone = tone;
 }
 
 function calculateDepth(value, currentDepth = 1) {
@@ -141,6 +146,27 @@ function parseYaml(text) {
   return window.jsyaml.load(text);
 }
 
+function detectInputType(text) {
+  const raw = String(text || "").trim();
+  if (!raw) {
+    return { type: "empty", value: null };
+  }
+
+  try {
+    return { type: "JSON", value: parseJson(raw) };
+  } catch (_) {
+    // ignore
+  }
+
+  try {
+    return { type: "YAML", value: parseYaml(raw) };
+  } catch (_) {
+    // ignore
+  }
+
+  return { type: "unknown", value: null };
+}
+
 function extractPathValue(value, path) {
   if (!path.trim()) {
     return value;
@@ -155,118 +181,163 @@ function extractPathValue(value, path) {
   }, value);
 }
 
+function rememberRecentSample(content) {
+  const trimmed = String(content || "").trim();
+  if (!trimmed) {
+    return;
+  }
+  const settings = getSettings();
+  const next = [trimmed, ...settings.jsonToolboxRecentSamples.filter((sample) => sample !== trimmed)].slice(0, 5);
+  updateSettings({
+    jsonToolboxRecentSamples: next
+  });
+  renderRecentSamples();
+}
+
+function renderRecentSamples() {
+  const samples = getSettings().jsonToolboxRecentSamples;
+  if (!samples.length) {
+    recentSamplesEl.innerHTML = `<span class="muted">${tr("还没有最近样本。", "No recent samples yet.")}</span>`;
+    return;
+  }
+  recentSamplesEl.innerHTML = samples
+    .map(
+      (sample, index) => `
+        <button type="button" class="tag tag-filter" data-recent-index="${index}">${escapeHtml(
+          sample.split("\n")[0].slice(0, 28) || tr("空样本", "Empty sample")
+        )}</button>
+      `
+    )
+    .join("");
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function readStructuredInput() {
+  const detected = detectInputType(inputEl.value);
+  if (detected.type === "unknown" || detected.type === "empty") {
+    throw new Error(tr("无法识别输入为 JSON 或 YAML。", "Input is not valid JSON or YAML."));
+  }
+  return detected;
+}
+
 function tryParseStructuredText() {
   const outputRaw = outputEl.value.trim();
-  const inputRaw = inputEl.value.trim();
-
   if (outputRaw) {
-    try {
-      return parseJson(outputRaw);
-    } catch (_) {
-      // ignore
+    const outputType = detectInputType(outputRaw);
+    if (outputType.type !== "unknown" && outputType.type !== "empty") {
+      return outputType;
     }
   }
-
-  if (inputRaw) {
-    try {
-      return parseJson(inputRaw);
-    } catch (_) {
-      // ignore
-    }
-    try {
-      return parseYaml(inputRaw);
-    } catch (_) {
-      // ignore
-    }
-  }
-
-  return null;
+  return detectInputType(inputEl.value);
 }
 
 function fillSample(name) {
   inputEl.value = SAMPLES[name];
   outputEl.value = "";
   pathResultEl.textContent = "--";
-  setModePills("JSON", tr("结果", "Result"));
+  rememberRecentSample(inputEl.value);
   validateJson();
 }
 
 function validateJson() {
   try {
-    const parsed = parseJson(inputEl.value);
-    const count = Array.isArray(parsed) ? parsed.length : Object.keys(parsed || {}).length;
-    setMeta(tr(`JSON 合法 · 顶层 ${count} 项`, `Valid JSON · ${count} top-level item(s)`));
-    outputEl.value = JSON.stringify(parsed, null, 2);
-    renderSummary(parsed);
-    setModePills("JSON", "JSON");
-    return parsed;
+    const parsed = readStructuredInput();
+    const count = Array.isArray(parsed.value) ? parsed.value.length : Object.keys(parsed.value || {}).length;
+    setMeta(tr(`${parsed.type} 合法 · 顶层 ${count} 项`, `Valid ${parsed.type} · ${count} top-level item(s)`), "success");
+    outputEl.value = parsed.type === "JSON" ? JSON.stringify(parsed.value, null, 2) : window.jsyaml.dump(parsed.value);
+    renderSummary(parsed.value);
+    setModePills(parsed.type, parsed.type);
+    rememberRecentSample(inputEl.value);
+    return parsed.value;
   } catch (error) {
     summaryGridEl.innerHTML = "";
-    setMeta(tr(`JSON 错误: ${error.message}`, `JSON error: ${error.message}`));
+    setMeta(tr(`输入错误: ${error.message}`, `Input error: ${error.message}`), "error");
     return null;
   }
 }
 
 function formatJson() {
   try {
-    const parsed = parseJson(inputEl.value);
-    outputEl.value = JSON.stringify(parsed, null, 2);
-    renderSummary(parsed);
-    setModePills("JSON", "JSON");
-    setMeta(tr("格式化完成", "Formatted"));
+    const parsed = readStructuredInput();
+    outputEl.value = parsed.type === "JSON" ? JSON.stringify(parsed.value, null, 2) : window.jsyaml.dump(parsed.value);
+    renderSummary(parsed.value);
+    setModePills(parsed.type, parsed.type);
+    setMeta(tr(`${parsed.type} 格式化完成`, `${parsed.type} formatted`), "success");
+    rememberRecentSample(inputEl.value);
   } catch (error) {
-    setMeta(tr(`格式化失败: ${error.message}`, `Format failed: ${error.message}`));
+    setMeta(tr(`格式化失败: ${error.message}`, `Format failed: ${error.message}`), "error");
   }
 }
 
 function minifyJson() {
   try {
-    const parsed = parseJson(inputEl.value);
-    outputEl.value = JSON.stringify(parsed);
-    renderSummary(parsed);
-    setModePills("JSON", "JSON");
-    setMeta(tr("压缩完成", "Minified"));
+    const parsed = readStructuredInput();
+    outputEl.value = JSON.stringify(parsed.value);
+    renderSummary(parsed.value);
+    setModePills(parsed.type, "JSON");
+    setMeta(tr("压缩完成", "Minified"), "success");
+    rememberRecentSample(inputEl.value);
   } catch (error) {
-    setMeta(tr(`压缩失败: ${error.message}`, `Minify failed: ${error.message}`));
+    setMeta(tr(`压缩失败: ${error.message}`, `Minify failed: ${error.message}`), "error");
   }
 }
 
 function convertJsonToYaml() {
   try {
-    const parsed = parseJson(inputEl.value);
-    outputEl.value = window.jsyaml.dump(parsed);
-    renderSummary(parsed);
-    setModePills("JSON", "YAML");
-    setMeta(tr("JSON 转 YAML 成功", "JSON to YAML success"));
+    const parsed = readStructuredInput();
+    outputEl.value = window.jsyaml.dump(parsed.value);
+    renderSummary(parsed.value);
+    setModePills(parsed.type, "YAML");
+    setMeta(tr("转换为 YAML 成功", "Converted to YAML"), "success");
+    rememberRecentSample(inputEl.value);
   } catch (error) {
-    setMeta(tr(`转换失败: ${error.message}`, `Convert failed: ${error.message}`));
+    setMeta(tr(`转换失败: ${error.message}`, `Convert failed: ${error.message}`), "error");
   }
 }
 
 function convertYamlToJson() {
   try {
-    const parsed = parseYaml(inputEl.value);
-    outputEl.value = JSON.stringify(parsed, null, 2);
-    renderSummary(parsed);
-    setModePills("YAML", "JSON");
-    setMeta(tr("YAML 转 JSON 成功", "YAML to JSON success"));
+    const parsed = readStructuredInput();
+    outputEl.value = JSON.stringify(parsed.value, null, 2);
+    renderSummary(parsed.value);
+    setModePills(parsed.type, "JSON");
+    setMeta(tr("转换为 JSON 成功", "Converted to JSON"), "success");
+    rememberRecentSample(inputEl.value);
   } catch (error) {
-    setMeta(tr(`转换失败: ${error.message}`, `Convert failed: ${error.message}`));
+    setMeta(tr(`转换失败: ${error.message}`, `Convert failed: ${error.message}`), "error");
   }
 }
 
 function extractPath() {
   const parsed = tryParseStructuredText();
-  if (!parsed) {
+  if (!parsed || parsed.type === "empty" || parsed.type === "unknown") {
     pathResultEl.textContent = tr("当前没有可提取的数据。", "There is no structured data to query.");
     return;
   }
   try {
-    const value = extractPathValue(parsed, pathInputEl.value);
+    const value = extractPathValue(parsed.value, pathInputEl.value);
     pathResultEl.textContent = value === undefined ? tr("路径不存在", "Path not found") : JSON.stringify(value, null, 2);
   } catch (error) {
     pathResultEl.textContent = error.message;
   }
+}
+
+function updateDetectedMode() {
+  const detected = detectInputType(inputEl.value);
+  if (detected.type === "JSON" || detected.type === "YAML") {
+    setModePills(detected.type, outputEl.value ? outputModePillEl.textContent : tr("结果", "Result"));
+    setMeta(tr(`已识别输入类型: ${detected.type}`, `Detected input type: ${detected.type}`), "info");
+    return;
+  }
+  setModePills(tr("未知", "Unknown"), outputEl.value ? outputModePillEl.textContent : tr("结果", "Result"));
 }
 
 function applyStaticI18n() {
@@ -296,6 +367,8 @@ function applyStaticI18n() {
   setText("#jsonInsightTitle", "结构洞察", "Structure Insights");
   setText("#jsonPathLabel", "路径提取", "Path Query");
   setText("#btnExtractPath", "提取路径", "Extract Path");
+  setText("#btnCopyPathResult", "复制路径结果", "Copy Path Result");
+  setText("#jsonRecentLabel", "最近样本", "Recent Samples");
   setPlaceholder("#jsonPathInput", "例如：tools[0]", "Example: tools[0]");
   inputEl.value = SAMPLES.config;
 }
@@ -319,6 +392,17 @@ function bindActions() {
     }, 1200);
   });
 
+  btnCopyPathResult.addEventListener("click", async () => {
+    if (!pathResultEl.textContent || pathResultEl.textContent === "--") {
+      return;
+    }
+    await navigator.clipboard.writeText(pathResultEl.textContent);
+    btnCopyPathResult.textContent = tr("已复制", "Copied");
+    window.setTimeout(() => {
+      btnCopyPathResult.textContent = tr("复制路径结果", "Copy Path Result");
+    }, 1200);
+  });
+
   btnSwapJson.addEventListener("click", () => {
     const temp = inputEl.value;
     inputEl.value = outputEl.value;
@@ -331,7 +415,7 @@ function bindActions() {
     outputEl.value = "";
     pathResultEl.textContent = "--";
     summaryGridEl.innerHTML = "";
-    setMeta(tr("已清空输入与输出", "Input and output cleared"));
+    setMeta(tr("已清空输入与输出", "Input and output cleared"), "info");
     setModePills("JSON", tr("结果", "Result"));
   });
 
@@ -339,15 +423,28 @@ function bindActions() {
   jsonSampleApiBtn.addEventListener("click", () => fillSample("api"));
   jsonSampleTodoBtn.addEventListener("click", () => fillSample("todo"));
 
-  inputEl.addEventListener("input", () => {
-    setMeta(tr("输入已更新，可继续格式化或校验", "Input updated. Continue with formatting or validation."));
+  inputEl.addEventListener("input", updateDetectedMode);
+
+  recentSamplesEl.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-recent-index]");
+    if (!button) {
+      return;
+    }
+    const sample = getSettings().jsonToolboxRecentSamples[Number(button.dataset.recentIndex)];
+    if (!sample) {
+      return;
+    }
+    inputEl.value = sample;
+    validateJson();
   });
 }
 
 function bootstrap() {
   applyStaticI18n();
   bindActions();
+  renderRecentSamples();
   validateJson();
+  mountLauncher();
   applyLangToLinks();
 }
 

@@ -1,4 +1,5 @@
 import { applyLangToLinks, bootI18n, isEnglish, setPlaceholder, setText, tr } from "../core/i18n.js";
+import { mountLauncher } from "../core/launcher.js";
 import { bootTheme } from "../core/theme.js";
 
 bootTheme();
@@ -225,6 +226,7 @@ function bootstrap() {
   updatePasswordLength();
   renderPassword();
   bindActions();
+  mountLauncher();
   applyLangToLinks();
 }
 

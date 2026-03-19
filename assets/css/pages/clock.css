@@ -92,6 +92,39 @@
   font-feature-settings: "tnum" 1;
 }
 
+.clock-context-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  background:
+    radial-gradient(circle at top right, rgba(47, 211, 140, 0.12), transparent 36%),
+    color-mix(in srgb, var(--card-strong) 80%, transparent);
+}
+
+.clock-context-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.clock-context-top {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.clock-context-main strong {
+  font-family: var(--font-title);
+}
+
+.clock-context-empty p {
+  margin: 8px 0 0;
+}
+
 .alarm-msg {
   color: var(--warning);
   min-height: 22px;

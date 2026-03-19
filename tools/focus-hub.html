@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <title id="focusHubPageTitle">BaoXiangGao Tools - 专注中心</title>
+    <link rel="stylesheet" href="/assets/css/tokens.css" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/layout.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages/focus-hub.css" />
+  </head>
+  <body class="page-enter">
+    <main class="fullscreen-wrap">
+      <header class="page-header panel">
+        <div class="panel-inner header-shell">
+          <div class="brand">
+            <span class="brand-kicker">Focus Hub</span>
+            <h1 class="brand-title" id="focusHubBrandTitle" style="font-size: clamp(1.3rem, 2vw, 2rem)">专注中心</h1>
+            <p class="brand-desc" id="focusHubBrandDesc">把番茄钟、休息节奏、任务上下文和今日专注记录收拢到一个入口里。</p>
+          </div>
+          <div class="header-actions-inline">
+            <div class="switch-stack">
+              <div class="switch-group" data-lang-switch role="group" aria-label="Language">
+                <button class="switch-item" type="button" data-value="zh">中</button>
+                <button class="switch-item" type="button" data-value="en">EN</button>
+              </div>
+              <div class="switch-group" data-theme-switch role="group" aria-label="Theme">
+                <button class="switch-item theme-mode" type="button" data-value="dark">Dark</button>
+                <button class="switch-item theme-mode" type="button" data-value="light">Light</button>
+                <button class="switch-item theme-mode" type="button" data-value="system">System</button>
+              </div>
+            </div>
+            <a class="btn" id="focusHubBackHomeBtn" href="/index.html">返回首页</a>
+            <a class="btn" id="focusHubOpenClockBtn" href="/tools/clock.html">打开时钟</a>
+          </div>
+        </div>
+      </header>
+
+      <section class="focus-hub-shell fill-card">
+        <div class="focus-main-stack">
+          <article class="panel focus-hero-panel accent-forest">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="focusHubHeroTitle">当前专注上下文</h2>
+                  <p class="muted" id="focusHubHeroHint">开始专注后会自动把倒计时写入时钟页，随时可以继续。</p>
+                </div>
+                <span class="pill" id="focusHubActivePill">Idle</span>
+              </div>
+              <div id="focusActiveCard" class="focus-active-card"></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="focusHubModesTitle">快速开始</h2>
+                  <p class="muted" id="focusHubModesHint">将番茄钟、短休息、长休息和自定义时长统一管理。</p>
+                </div>
+              </div>
+
+              <div id="focusTodoCallout" class="notice" style="display: none"></div>
+
+              <div class="field" style="margin-top: 14px">
+                <span class="field-label" id="focusHubTodoLabel">关联 Todo</span>
+                <select id="focusTodoSelect" class="select"></select>
+              </div>
+
+              <div class="focus-mode-grid" id="focusModeGrid"></div>
+
+              <div class="focus-custom-row">
+                <label class="field">
+                  <span class="field-label" id="focusHubCustomLabel">自定义时长（分钟）</span>
+                  <input id="focusCustomMinutes" class="input" type="number" min="1" max="240" value="45" />
+                </label>
+                <button class="btn btn-primary" id="focusCustomStartBtn" type="button">开始自定义专注</button>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="focus-side-stack">
+          <article class="panel">
+            <div class="panel-inner">
+              <h2 class="panel-title" id="focusHubStatsTitle">今日统计</h2>
+              <div class="stat-row">
+                <div class="stat-box"><span id="focusStatMinutesLabel">累计分钟</span><strong id="focusStatMinutes">0</strong></div>
+                <div class="stat-box"><span id="focusStatPomodoroLabel">完成番茄</span><strong id="focusStatPomodoro">0</strong></div>
+                <div class="stat-box"><span id="focusStatSessionsLabel">会话数</span><strong id="focusStatSessions">0</strong></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="focusHubSettingsTitle">默认设置</h2>
+                  <p class="muted" id="focusHubSettingsHint">修改后会立即持久化到本地。</p>
+                </div>
+              </div>
+
+              <form id="focusSettingsForm" class="inline-form">
+                <div class="grid-three">
+                  <label class="field">
+                    <span class="field-label" id="focusPomodoroLabel">番茄钟</span>
+                    <input id="focusPomodoroInput" class="input" type="number" min="1" max="240" />
+                  </label>
+                  <label class="field">
+                    <span class="field-label" id="focusShortBreakLabel">短休息</span>
+                    <input id="focusShortBreakInput" class="input" type="number" min="1" max="120" />
+                  </label>
+                  <label class="field">
+                    <span class="field-label" id="focusLongBreakLabel">长休息</span>
+                    <input id="focusLongBreakInput" class="input" type="number" min="1" max="180" />
+                  </label>
+                </div>
+
+                <div class="link-check-grid">
+                  <label class="link-check-card">
+                    <input id="focusAutoBreakInput" type="checkbox" />
+                    <span>
+                      <strong id="focusAutoBreakLabel">自动开始休息</strong>
+                      <small id="focusAutoBreakHint">番茄结束后自动进入短/长休息</small>
+                    </span>
+                  </label>
+                  <label class="link-check-card">
+                    <input id="focusAutoNextInput" type="checkbox" />
+                    <span>
+                      <strong id="focusAutoNextLabel">休息后自动开始下一轮</strong>
+                      <small id="focusAutoNextHint">短休息或长休息结束后自动进入下一次专注</small>
+                    </span>
+                  </label>
+                  <label class="link-check-card">
+                    <input id="focusMutedInput" type="checkbox" />
+                    <span>
+                      <strong id="focusMutedLabel">静音同步到时钟</strong>
+                      <small id="focusMutedHint">新会话会把静音偏好带到时钟页</small>
+                    </span>
+                  </label>
+                </div>
+
+                <div class="toolbar">
+                  <button class="btn" id="focusSettingsSaveBtn" type="submit">保存设置</button>
+                </div>
+              </form>
+            </div>
+          </article>
+
+          <article class="panel focus-records-panel">
+            <div class="panel-inner">
+              <div class="panel-heading">
+                <div>
+                  <h2 class="panel-title" id="focusHubRecordsTitle">最近记录</h2>
+                  <p class="muted" id="focusHubRecordsHint">保留模式、时长、状态和关联任务。</p>
+                </div>
+              </div>
+              <div id="focusSessionList" class="focus-session-list"></div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/assets/js/pages/focus-hub.js"></script>
+  </body>
+</html>

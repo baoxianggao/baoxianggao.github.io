@@ -9,6 +9,7 @@ import {
   upsertBlogPost
 } from "../core/blog.js";
 import { applyLangToLinks, bootI18n, getLang, isEnglish, langHref, setPlaceholder, setText, tr } from "../core/i18n.js";
+import { mountLauncher } from "../core/launcher.js";
 import { bootTheme } from "../core/theme.js";
 
 initializeDefaults();
@@ -28,6 +29,7 @@ const blogContentInputEl = document.getElementById("blogContentInput");
 const blogPreviewEl = document.getElementById("blogPreview");
 const blogStudioStatusPillEl = document.getElementById("blogStudioStatusPill");
 const blogStudioMetricsEl = document.getElementById("blogStudioMetrics");
+const blogCoverPreviewCardEl = document.getElementById("blogCoverPreviewCard");
 
 const newBlogBtn = document.getElementById("newBlogBtn");
 const duplicateBlogBtn = document.getElementById("duplicateBlogBtn");
@@ -180,6 +182,7 @@ function renderPreview() {
   const post = collectForm(getActivePost()?.status || "draft");
   blogPreviewEl.className = `blog-preview accent-${post.accent}`;
   blogPreviewEl.innerHTML = window.marked.parse(post.content || `# ${escapeHtml(post.title)}`);
+  renderCoverPreview(post);
 }
 
 function renderMetrics() {
@@ -190,6 +193,30 @@ function renderMetrics() {
 
 function updateStatusPill(status) {
   blogStudioStatusPillEl.textContent = statusText(status);
+}
+
+function renderCoverPreview(post = collectForm(getActivePost()?.status || "draft")) {
+  blogCoverPreviewCardEl.className = `blog-cover-preview accent-${post.accent}`;
+  blogCoverPreviewCardEl.innerHTML = `
+    <div>
+      <div class="blog-list-meta" style="margin-bottom: 14px">
+        <span class="pill">${templateName(post.template)}</span>
+        <span class="pill">${statusText(post.status)}</span>
+        <span>${post.language === "en" ? "English" : tr("中文", "Chinese")}</span>
+      </div>
+      <h3>${escapeHtml(post.title || tr("未命名文章", "Untitled Post"))}</h3>
+      <p style="margin-top: 12px">${escapeHtml(
+        post.summary || tr("这里会展示目录页上的摘要，方便在发布前确认展示效果。", "This summary matches the directory card so you can preview it before publishing.")
+      )}</p>
+    </div>
+    <div class="chips">${String(post.tags || "")
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .slice(0, 4)
+      .map((tag) => `<span class="tag">#${escapeHtml(tag)}</span>`)
+      .join("")}</div>
+  `;
 }
 
 function loadPost(postId) {
@@ -247,6 +274,17 @@ function ensureStarterPost() {
 
   refreshPosts();
   activePostId = starter.id;
+}
+
+function consumeActionParam() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("action") !== "new") {
+    return;
+  }
+  createNewPost("guide");
+  const cleanUrl = new URL(window.location.href);
+  cleanUrl.searchParams.delete("action");
+  window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
 }
 
 function saveCurrent(statusOverride = "") {
@@ -336,6 +374,8 @@ function applyStaticI18n() {
   setText("#openPostBtn", "打开文章", "Open Post");
   setText("#exportBlogMdBtn", "导出 MD", "Export MD");
   setText("#exportBlogHtmlBtn", "导出 HTML", "Export HTML");
+  setText("#blogStudioCardPreviewTitle", "封面摘要预览", "Cover Card Preview");
+  setText("#blogStudioCardPreviewHint", "这里会同步展示目录页上的标题、摘要、状态和封面风格。", "Preview the directory card title, summary, status, and accent before publishing.");
   setText("#blogStudioEditorTitle", "Markdown 编辑", "Markdown Editor");
   setText("#blogStudioPreviewTitle", "实时预览", "Live Preview");
   setText("#blogSnippetQuote", "引用", "Quote");
@@ -411,6 +451,7 @@ function bindActions() {
       postSlugInputEl.value = slugify(postTitleInputEl.value);
     }
     renderPreview();
+    renderCoverPreview();
     renderMetrics();
     clearTimeout(autoSaveTimer);
     autoSaveTimer = setTimeout(saveCurrentSilently, 700);
@@ -424,10 +465,13 @@ function bindActions() {
 
   [postSummaryInputEl, postTagsInputEl, postTemplateSelectEl, postLanguageSelectEl].forEach((element) => {
     element.addEventListener("input", () => {
+      renderCoverPreview();
       clearTimeout(autoSaveTimer);
       autoSaveTimer = setTimeout(saveCurrentSilently, 700);
     });
     element.addEventListener("change", () => {
+      renderPreview();
+      renderCoverPreview();
       clearTimeout(autoSaveTimer);
       autoSaveTimer = setTimeout(saveCurrentSilently, 700);
     });
@@ -482,7 +526,9 @@ function bootstrap() {
   ensureStarterPost();
   refreshPosts();
   loadPost(activePostId);
+  consumeActionParam();
   bindActions();
+  mountLauncher();
   applyLangToLinks();
 }
 

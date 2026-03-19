@@ -1,7 +1,15 @@
-import { STORAGE_KEYS, getState, setState, initializeDefaults } from "../core/store.js";
+import {
+  cancelFocusSession,
+  completeFocusSession,
+  getFocusSessionById,
+  getNextAutoFocusSpec,
+  startFocusSession
+} from "../core/focus.js";
 import { formatDateTime, toInputDateTimeValue } from "../core/date.js";
 import { initImmersiveFullscreen } from "../core/fullscreen.js";
-import { bootI18n, tr, applyLangToLinks, setText } from "../core/i18n.js";
+import { bootI18n, tr, applyLangToLinks, setText, langHref } from "../core/i18n.js";
+import { mountLauncher } from "../core/launcher.js";
+import { DEFAULT_CLOCK_STATE, getState, initializeDefaults, listTodos, normalizeClockState, setState, STORAGE_KEYS } from "../core/store.js";
 import { bootTheme } from "../core/theme.js";
 
 initializeDefaults();
@@ -25,14 +33,10 @@ const startBtn = document.getElementById("countdownStart");
 const pauseBtn = document.getElementById("countdownPause");
 const resetBtn = document.getElementById("countdownReset");
 const muteToggle = document.getElementById("muteToggle");
+const clockFocusContextEl = document.getElementById("clockFocusContext");
 
 let offsetMs = 0;
-let countdownState = getState(STORAGE_KEYS.clock, {
-  countdownTargetISO: "",
-  remainingMs: 0,
-  running: false,
-  muted: false
-});
+let countdownState = normalizeClockState(getState(STORAGE_KEYS.clock, DEFAULT_CLOCK_STATE));
 
 muteToggle.checked = Boolean(countdownState.muted);
 
@@ -52,8 +56,29 @@ function formatRemaining(ms) {
   return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
 
+function focusModeLabel(mode) {
+  return tr(
+    mode === "pomodoro"
+      ? "番茄钟"
+      : mode === "shortBreak"
+        ? "短休息"
+        : mode === "longBreak"
+          ? "长休息"
+          : "自定义",
+    mode === "pomodoro"
+      ? "Pomodoro"
+      : mode === "shortBreak"
+        ? "Short Break"
+        : mode === "longBreak"
+          ? "Long Break"
+          : "Custom"
+  );
+}
+
 function persistCountdown() {
+  countdownState = normalizeClockState(countdownState);
   setState(STORAGE_KEYS.clock, countdownState);
+  renderFocusContext();
 }
 
 function beep() {
@@ -77,20 +102,8 @@ function beep() {
 }
 
 async function syncClockOffset() {
-  syncStateEl.textContent = tr("同步中...", "Syncing...");
-  try {
-    const response = await fetch("https://worldtimeapi.org/api/timezone/Asia/Shanghai");
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const payload = await response.json();
-    const serverMs = new Date(payload.datetime).getTime();
-    offsetMs = serverMs - Date.now();
-    syncStateEl.textContent = tr("已同步", "Synced");
-  } catch (_) {
-    offsetMs = 0;
-    syncStateEl.textContent = tr("离线本地时间", "Local time (offline)");
-  }
+  offsetMs = 0;
+  syncStateEl.textContent = tr("本地高精度时间", "Local high-precision time");
 }
 
 function renderClock() {
@@ -111,18 +124,104 @@ function renderClock() {
   requestAnimationFrame(renderClock);
 }
 
+function getCurrentFocusSession() {
+  if (countdownState.source !== "focus" || !countdownState.sessionId) {
+    return null;
+  }
+  return getFocusSessionById(countdownState.sessionId);
+}
+
+function renderFocusContext() {
+  const session = getCurrentFocusSession();
+  if (!session) {
+    clockFocusContextEl.innerHTML = `
+      <div class="clock-context-empty">
+        <strong>${tr("普通倒计时", "Manual Countdown")}</strong>
+        <p class="muted">${tr("当前倒计时没有专注上下文，可以直接使用预设或目标时间。", "This countdown has no focus context. Use presets or set a target time directly.")}</p>
+      </div>
+    `;
+    return;
+  }
+
+  const todo = listTodos({ includeArchived: true }).find((item) => item.id === session.relatedTodoId);
+  clockFocusContextEl.innerHTML = `
+    <div class="clock-context-main">
+      <div>
+        <div class="clock-context-top">
+          <span class="pill">${tr("来自专注中心", "From Focus Hub")}</span>
+          <span class="muted">${focusModeLabel(session.mode)} · ${session.durationMinutes}${tr(" 分钟", " min")}</span>
+        </div>
+        <strong>${escapeHtml(countdownState.label || focusModeLabel(session.mode))}</strong>
+        <p class="muted" style="margin-top: 8px">${todo ? `${tr("关联任务", "Linked task")}: ${escapeHtml(todo.title)} · ` : ""}${tr(
+          "完成后可返回专注中心查看记录。",
+          "Return to Focus Hub after finishing to review the record."
+        )}</p>
+      </div>
+      <div class="toolbar">
+        <a class="btn" href="${langHref(countdownState.returnHref || "/tools/focus-hub.html")}">${tr("返回入口", "Return")}</a>
+      </div>
+    </div>
+  `;
+}
+
+function clearFocusContext() {
+  countdownState = {
+    ...countdownState,
+    source: "manual",
+    mode: "",
+    label: "",
+    relatedTodoId: "",
+    returnHref: "",
+    sessionId: ""
+  };
+}
+
+function maybeAutoStartNextFocus(completedSession) {
+  const nextSpec = getNextAutoFocusSpec(completedSession);
+  if (!nextSpec) {
+    return false;
+  }
+  startFocusSession({
+    mode: nextSpec.mode,
+    durationMinutes: nextSpec.durationMinutes,
+    relatedTodoId: "",
+    note: "",
+    label: `${focusModeLabel(nextSpec.mode)} · ${nextSpec.durationMinutes}${tr(" 分钟", " min")}`,
+    returnHref: "/tools/focus-hub.html"
+  });
+  countdownState = normalizeClockState(getState(STORAGE_KEYS.clock, DEFAULT_CLOCK_STATE));
+  targetTimeInput.value = toInputDateTimeValue(new Date(countdownState.countdownTargetISO));
+  alarmMsgEl.textContent = tr("上一轮结束，已自动开始下一轮。", "Previous session finished. The next round started automatically.");
+  return true;
+}
+
+function handleCountdownFinished() {
+  const session = getCurrentFocusSession();
+  if (session) {
+    const completedSession = completeFocusSession(session.id, {
+      note: session.note
+    });
+    if (completedSession && maybeAutoStartNextFocus(completedSession)) {
+      return;
+    }
+  }
+
+  countdownState.running = false;
+  countdownState.remainingMs = 0;
+  countdownState.countdownTargetISO = "";
+  clearFocusContext();
+  persistCountdown();
+  countdownDisplayEl.textContent = "00:00:00";
+  alarmMsgEl.textContent = tr("倒计时结束", "Countdown finished");
+  beep();
+}
+
 function recalcRemaining() {
   if (countdownState.running && countdownState.countdownTargetISO) {
     const targetMs = new Date(countdownState.countdownTargetISO).getTime();
     const remain = targetMs - nowMs();
     if (remain <= 0) {
-      countdownState.running = false;
-      countdownState.remainingMs = 0;
-      countdownState.countdownTargetISO = "";
-      persistCountdown();
-      countdownDisplayEl.textContent = "00:00:00";
-      alarmMsgEl.textContent = tr("倒计时结束", "Countdown finished");
-      beep();
+      handleCountdownFinished();
       return;
     }
     countdownState.remainingMs = remain;
@@ -131,11 +230,26 @@ function recalcRemaining() {
   countdownDisplayEl.textContent = formatRemaining(countdownState.remainingMs || 0);
 }
 
-function startCountdownByTarget(targetISO) {
+function cancelActiveFocusIfNeeded(reason) {
+  const session = getCurrentFocusSession();
+  if (!session) {
+    return;
+  }
+  cancelFocusSession(session.id, {
+    note: reason || session.note
+  });
+  clearFocusContext();
+}
+
+function startCountdownByTarget(targetISO, options = {}) {
   const targetMs = new Date(targetISO).getTime();
   if (Number.isNaN(targetMs) || targetMs <= nowMs()) {
     alarmMsgEl.textContent = tr("目标时间必须晚于当前时间", "Target time must be in the future");
     return;
+  }
+
+  if (options.asManual !== false) {
+    cancelActiveFocusIfNeeded(tr("手动切换为普通倒计时", "Switched to a manual countdown"));
   }
 
   countdownState = {
@@ -144,6 +258,9 @@ function startCountdownByTarget(targetISO) {
     running: true,
     remainingMs: targetMs - nowMs()
   };
+  if (options.asManual !== false) {
+    clearFocusContext();
+  }
   persistCountdown();
   alarmMsgEl.textContent = "";
 }
@@ -154,7 +271,7 @@ function handleStart() {
     alarmMsgEl.textContent = tr("请先选择目标时间", "Please select a target time");
     return;
   }
-  startCountdownByTarget(new Date(inputValue).toISOString());
+  startCountdownByTarget(new Date(inputValue).toISOString(), { asManual: true });
 }
 
 function handlePauseResume() {
@@ -178,12 +295,14 @@ function handlePauseResume() {
 }
 
 function handleReset() {
+  cancelActiveFocusIfNeeded(tr("在时钟页被重置", "Reset from the clock page"));
   countdownState = {
     ...countdownState,
     countdownTargetISO: "",
     remainingMs: 0,
     running: false
   };
+  clearFocusContext();
   persistCountdown();
   countdownDisplayEl.textContent = "00:00:00";
   alarmMsgEl.textContent = tr("已重置", "Reset");
@@ -195,7 +314,7 @@ function bindPresetButtons() {
       const minutes = Number(button.dataset.preset || 0);
       const target = new Date(nowMs() + minutes * 60 * 1000);
       targetTimeInput.value = toInputDateTimeValue(target);
-      startCountdownByTarget(target.toISOString());
+      startCountdownByTarget(target.toISOString(), { asManual: true });
     });
   });
 }
@@ -214,14 +333,14 @@ function bindActions() {
 }
 
 function bootstrapCountdownFromState() {
+  countdownState = normalizeClockState(getState(STORAGE_KEYS.clock, DEFAULT_CLOCK_STATE));
+  muteToggle.checked = Boolean(countdownState.muted);
+  renderFocusContext();
+
   if (countdownState.running && countdownState.countdownTargetISO) {
     const targetMs = new Date(countdownState.countdownTargetISO).getTime();
     if (targetMs <= nowMs()) {
-      countdownState.running = false;
-      countdownState.remainingMs = 0;
-      countdownState.countdownTargetISO = "";
-      persistCountdown();
-      alarmMsgEl.textContent = tr("上次倒计时已结束", "Previous countdown already ended");
+      handleCountdownFinished();
     } else {
       targetTimeInput.value = toInputDateTimeValue(new Date(targetMs));
       alarmMsgEl.textContent = tr("已恢复上次倒计时", "Restored previous countdown");
@@ -253,6 +372,15 @@ function applyStaticI18n() {
   setText("#clockMuteText", "静音", "Mute");
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 async function bootstrap() {
   applyStaticI18n();
   bindActions();
@@ -267,10 +395,10 @@ async function bootstrap() {
   });
   immersiveHintEl?.setAttribute("aria-live", "polite");
   await syncClockOffset();
-  setInterval(syncClockOffset, 15 * 60 * 1000);
   renderClock();
   bootstrapCountdownFromState();
   setInterval(recalcRemaining, 120);
+  mountLauncher();
   applyLangToLinks();
 }
 
