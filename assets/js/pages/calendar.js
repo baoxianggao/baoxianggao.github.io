@@ -5,6 +5,7 @@ import {
   onStateChanged
 } from "../core/store.js";
 import { formatDateTime, formatDayKey } from "../core/date.js";
+import { initImmersiveFullscreen } from "../core/fullscreen.js";
 import { getHolidayMap, syncHolidayFromRemote, readHolidayCache } from "../core/holiday.js";
 import { bootI18n, isEnglish, tr, applyLangToLinks, setText } from "../core/i18n.js";
 import { bootTheme } from "../core/theme.js";
@@ -19,6 +20,8 @@ const selectedHolidayEl = document.getElementById("selectedHoliday");
 const dayTaskListEl = document.getElementById("dayTaskList");
 const syncBtn = document.getElementById("btnSyncHoliday");
 const syncStatusEl = document.getElementById("holidaySyncStatus");
+const pageWrapEl = document.getElementById("calendarPageWrap");
+const fullscreenBtn = document.getElementById("calendarFullscreenBtn");
 const jumpControlsEl = document.getElementById("calendarJumpControls");
 const jumpYearEl = document.getElementById("jumpYear");
 const jumpMonthEl = document.getElementById("jumpMonth");
@@ -310,6 +313,7 @@ function applyStaticI18n() {
   document.title = tr("BaoXiangGao Tools - 全屏日历", "BaoXiangGao Tools - Calendar");
   setText("#calendarBrandTitle", "农历 + 法定节假日日历", "Lunar + China Public Holiday Calendar");
   setText("#calendarBackHomeBtn", "返回首页", "Back Home");
+  setText("#calendarFullscreenBtn", "进入全屏", "Enter Fullscreen");
   setText("#btnSyncHoliday", "同步节假日", "Sync Holidays");
   selectedDateLabelEl.textContent = tr("请选择日期", "Select a date");
   selectedHolidayEl.textContent = tr("暂无节假日信息", "No holiday info");
@@ -333,6 +337,21 @@ function bindActions() {
       rebuildTaskCountMap();
       calendar.refetchEvents();
       renderDayDetail(currentSelectedDay);
+    }
+  });
+
+  initImmersiveFullscreen({
+    target: pageWrapEl,
+    button: fullscreenBtn,
+    labels: {
+      enter: tr("进入全屏", "Enter Fullscreen"),
+      exit: tr("退出全屏", "Exit Fullscreen"),
+      unsupported: tr("浏览器不支持", "Unsupported")
+    },
+    onChange: () => {
+      window.setTimeout(() => {
+        calendar?.updateSize();
+      }, 160);
     }
   });
 }

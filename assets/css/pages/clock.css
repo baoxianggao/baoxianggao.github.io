@@ -75,8 +75,71 @@
   font-size: 14px;
 }
 
+#clockPageWrap.is-immersive {
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 10px;
+  gap: 10px;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(114, 168, 255, 0.18), transparent 28%),
+    radial-gradient(circle at 80% 16%, rgba(79, 227, 209, 0.16), transparent 24%),
+    linear-gradient(155deg, var(--bg-0), var(--bg-1) 54%, var(--bg-2));
+}
+
+#clockPageWrap.is-immersive .page-header {
+  margin-bottom: 8px;
+}
+
+#clockPageWrap.is-immersive .page-header.panel {
+  border-radius: 22px;
+  backdrop-filter: blur(20px);
+}
+
+#clockPageWrap.is-immersive .clock-stage {
+  gap: 10px;
+}
+
+#clockPageWrap.is-immersive .clock-main::before {
+  width: 760px;
+  height: 760px;
+  background: radial-gradient(circle, rgba(114, 168, 255, 0.26), rgba(79, 227, 209, 0.08) 42%, transparent 74%);
+}
+
+#clockPageWrap.is-immersive .time-main {
+  font-size: clamp(4rem, 12vw, 9.6rem);
+  min-width: 14.4ch;
+}
+
+#clockPageWrap.is-immersive .time-main-clock {
+  width: 8.9ch;
+}
+
+#clockPageWrap.is-immersive .millisecond {
+  width: 4.4ch;
+  opacity: 0.9;
+}
+
+#clockPageWrap.is-immersive .time-sub {
+  margin-top: 16px;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+
+#clockPageWrap.is-immersive .countdown-display {
+  font-size: clamp(2.4rem, 4vw, 3rem);
+}
+
+#clockPageWrap.is-immersive .panel-inner {
+  padding: 16px 18px;
+}
+
 @media (max-width: 1200px) {
   .clock-stage {
     grid-template-columns: 1fr;
+  }
+
+  #clockPageWrap.is-immersive .time-main {
+    font-size: clamp(3.4rem, 15vw, 7rem);
   }
 }

@@ -1,5 +1,6 @@
 import { STORAGE_KEYS, getState, setState, initializeDefaults } from "../core/store.js";
 import { formatDateTime, toInputDateTimeValue } from "../core/date.js";
+import { initImmersiveFullscreen } from "../core/fullscreen.js";
 import { bootI18n, tr, applyLangToLinks, setText } from "../core/i18n.js";
 import { bootTheme } from "../core/theme.js";
 
@@ -14,6 +15,8 @@ const timeSsEl = document.getElementById("timeSs");
 const timeMsEl = document.getElementById("timeMs");
 const timeSubEl = document.getElementById("timeSub");
 const syncStateEl = document.getElementById("syncState");
+const pageWrapEl = document.getElementById("clockPageWrap");
+const fullscreenBtn = document.getElementById("clockFullscreenBtn");
 const countdownDisplayEl = document.getElementById("countdownDisplay");
 const alarmMsgEl = document.getElementById("alarmMsg");
 const targetTimeInput = document.getElementById("targetTimeInput");
@@ -231,6 +234,7 @@ function applyStaticI18n() {
   document.title = tr("BaoXiangGao Tools - 全屏时钟", "BaoXiangGao Tools - Clock");
   setText("#clockBrandTitle", "高精度时钟与倒计时", "High-Precision Clock & Countdown");
   setText("#clockBackHomeBtn", "返回首页", "Back Home");
+  setText("#clockFullscreenBtn", "进入全屏", "Enter Fullscreen");
   setText("#clockCountdownTitle", "倒计时", "Countdown");
   setText("#clockTargetLabel", "目标时间", "Target Time");
   setText("#preset5Btn", "5 分钟", "5 min");
@@ -246,6 +250,15 @@ function applyStaticI18n() {
 async function bootstrap() {
   applyStaticI18n();
   bindActions();
+  initImmersiveFullscreen({
+    target: pageWrapEl,
+    button: fullscreenBtn,
+    labels: {
+      enter: tr("进入全屏", "Enter Fullscreen"),
+      exit: tr("退出全屏", "Exit Fullscreen"),
+      unsupported: tr("浏览器不支持", "Unsupported")
+    }
+  });
   await syncClockOffset();
   setInterval(syncClockOffset, 15 * 60 * 1000);
   renderClock();

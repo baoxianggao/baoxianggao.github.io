@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="/assets/css/pages/clock.css" />
   </head>
   <body class="page-enter">
-    <main class="fullscreen-wrap">
+    <main class="fullscreen-wrap" id="clockPageWrap">
       <header class="page-header panel">
         <div class="panel-inner header-shell">
           <div class="brand">
@@ -31,6 +31,7 @@
               </div>
             </div>
             <a class="btn" id="clockBackHomeBtn" href="/index.html">返回首页</a>
+            <button class="btn btn-primary" id="clockFullscreenBtn" type="button">进入全屏</button>
             <span class="pill"><span class="status-dot pulse"></span><span id="syncState">同步中...</span></span>
           </div>
         </div>
