@@ -95,6 +95,7 @@ function applyStaticI18n() {
   setText("#homeTopTodoBtn", "新增待办", "New Todo");
   setText("#homeTopEditorBtn", "打开编辑器", "Open Editor");
   setText("#homeTopBlogBtn", "写博客", "Write Blog");
+  setText("#homeTopLearningBtn", "学习站", "Learning");
   setText("#homeTopClockBtn", "启动倒计时", "Start Countdown");
 
   setText("#homeAgendaTitle", "近期日程", "Upcoming Agenda");
