@@ -1,0 +1,808 @@
+import{_ as a,o as n,c as p,ag as l}from"./chunks/framework.CmaAMB6e.js";const g=JSON.parse('{"title":"System Design L2 习题集","description":"","frontmatter":{},"headers":[],"relativePath":"system-design/practice/L2.md","filePath":"system-design/practice/L2.md","lastUpdated":null}'),i={name:"system-design/practice/L2.md"};function e(t,s,c,h,d,o){return n(),p("div",null,[...s[0]||(s[0]=[l(`<h1 id="system-design-l2-习题集" tabindex="-1">System Design L2 习题集 <a class="header-anchor" href="#system-design-l2-习题集" aria-label="Permalink to &quot;System Design L2 习题集&quot;">​</a></h1><blockquote><p>覆盖概念：05 负载均衡 · 06 消息队列 · 07 分布式缓存 · 08 数据库分片 · 09 CDN 与边缘 对应等级：L2 基础能力者（阶段 2 · 基础组件，能力目标见 <a href="./../levels">levels.md</a>） 使用方式：<strong>先自己写完，再对答案</strong>。用 <code>/practice system-design L2</code> 可让 AI 陪练抽取题目并做设计评审。</p><p>本等级<strong>不写代码</strong>（Nginx 配置除外），全部是组件选型与方案设计任务。每题答案都包含：完整设计过程、关键数字的计算过程、评分要点。</p></blockquote><h2 id="题目-1-·-l4-还是-l7-流量入口怎么分层-对应概念-05" tabindex="-1">题目 1 · L4 还是 L7：流量入口怎么分层（对应概念 05） <a class="header-anchor" href="#题目-1-·-l4-还是-l7-流量入口怎么分层-对应概念-05" aria-label="Permalink to &quot;题目 1 · L4 还是 L7：流量入口怎么分层（对应概念 05）&quot;">​</a></h2><p><strong>难度</strong>：基础</p><p><strong>题目</strong>：一个电商系统，流量构成如下：Web/App API 请求峰值 3 万 QPS、静态资源（图片/CSS/JS）请求 20 万 QPS、内部 MySQL 与 Kafka 需要统一入口。请设计负载均衡分层方案。</p><p><strong>要求</strong>：</p><ul><li>说明每一层用 L4 还是 L7，以及理由</li><li>估算每层需要的机器数（给出单机容量假设与算式）</li><li>写一份 Nginx L7 配置（加权轮询 + 健康检查 + 会话保持相关设置）</li><li>指出「LB 自身」的高可用怎么做</li></ul><p><strong>提示</strong>：前端锚点——Webpack DevServer 的 <code>proxy</code> 就是一台迷你 L7 负载均衡（按路径转发）；生产环境的区别是要额外考虑算法、健康检查、会话保持和自身高可用四件事。</p><details><summary>参考答案</summary><h4 id="_1-分层设计" tabindex="-1">1. 分层设计 <a class="header-anchor" href="#_1-分层设计" aria-label="Permalink to &quot;1. 分层设计&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>                        用户</span></span>
+<span class="line"><span>                          │</span></span>
+<span class="line"><span>                    ┌─────▼─────┐</span></span>
+<span class="line"><span>                    │    CDN     │  静态资源 20 万 QPS 在边缘消化（见概念 09）</span></span>
+<span class="line"><span>                    └─────┬─────┘</span></span>
+<span class="line"><span>                          │ 回源 + 动态请求</span></span>
+<span class="line"><span>                    ┌─────▼─────┐</span></span>
+<span class="line"><span>                    │  WAF/清洗  │  DDoS 防护，挡在 LB 之前</span></span>
+<span class="line"><span>                    └─────┬─────┘</span></span>
+<span class="line"><span>                          │</span></span>
+<span class="line"><span>        ┌─────────────────┼─────────────────┐</span></span>
+<span class="line"><span>        │                 │                 │</span></span>
+<span class="line"><span>   ┌────▼────┐      ┌─────▼─────┐     ┌─────▼─────┐</span></span>
+<span class="line"><span>   │ L4 (LVS)│      │ L7 (Nginx)│     │ L4 (LVS)  │</span></span>
+<span class="line"><span>   │ 内部组件 │      │  API 3万  │     │ 内部组件   │</span></span>
+<span class="line"><span>   │ MySQL   │      └─────┬─────┘     │ Kafka     │</span></span>
+<span class="line"><span>   └─────────┘            │           └───────────┘</span></span>
+<span class="line"><span>                    ┌─────▼─────┐</span></span>
+<span class="line"><span>                    │  应用集群   │</span></span>
+<span class="line"><span>                    └───────────┘</span></span></code></pre></div><p><strong>为什么这么分</strong>：</p><table tabindex="0"><thead><tr><th>流量</th><th>层级</th><th>理由</th></tr></thead><tbody><tr><td>API 请求 3 万 QPS</td><td><strong>L7（Nginx）</strong></td><td>需要按路径路由（<code>/api</code> / <code>/static</code> / <code>/ws</code>）、Header 改写、灰度分流</td></tr><tr><td>静态资源 20 万 QPS</td><td><strong>CDN + L7</strong></td><td>90%+ 在 CDN 边缘命中，回源部分走 L7 按 <code>/static</code> 分流到静态服务器</td></tr><tr><td>MySQL / Kafka 入口</td><td><strong>L4（LVS）</strong></td><td>内部组件只转发端口，不需要解析报文；L4 性能极高、开销最小</td></tr></tbody></table><p><strong>实践原则</strong>：<strong>能用 L4 就用 L4</strong>（更简单更快），需要按内容路由/Header 改写/灰度分流时才上 L7。数据库入口用 Nginx 做 L7 是典型误用。</p><h4 id="_2-机器数估算" tabindex="-1">2. 机器数估算 <a class="header-anchor" href="#_2-机器数估算" aria-label="Permalink to &quot;2. 机器数估算&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>假设（来自压测，不是拍脑袋）：</span></span>
+<span class="line"><span>  Nginx（L7，4 核 8G）  单机 2 万 QPS（L7 要解析报文，比 L4 低一个量级）</span></span>
+<span class="line"><span>  LVS（L4，4 核 8G）    单机 10 万 QPS（只转发不解析）</span></span>
+<span class="line"><span>  应用服务（4 核 8G）    单机 800 QPS</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>① API 层 Nginx：</span></span>
+<span class="line"><span>   ceil(3 万 / 2 万) = 2 台 + 1 台冗余 = 3 台</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>② 应用层：</span></span>
+<span class="line"><span>   ceil(3 万 / 800) = 38 台 + 冗余（N+1，实际按 10% 冗余）≈ 42 台</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>③ 内部 L4（MySQL/Kafka）：</span></span>
+<span class="line"><span>   内部 QPS 远低于外部，2 台主备即可（重点是冗余不是容量）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>关键提醒：LB 转发所有流量，它的 CPU/网卡必须按「峰值 QPS + 余量」配置。</span></span>
+<span class="line"><span>         常见事故就是「后端没崩，LB 先崩了」。</span></span></code></pre></div><h4 id="_3-nginx-最小配置" tabindex="-1">3. Nginx 最小配置 <a class="header-anchor" href="#_3-nginx-最小配置" aria-label="Permalink to &quot;3. Nginx 最小配置&quot;">​</a></h4><div class="language-nginx vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">nginx</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># nginx.conf —— L7 负载均衡</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">upstream</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> backend_api </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    # 加权轮询：新机器 weight 低，性能好的机器 weight 高</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    server</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> 10.0.0.11:8080 </span><span style="--shiki-light:#E36209;--shiki-dark:#FFAB70;">weight</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">3</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    server 10.0.0.12:8080 </span><span style="--shiki-light:#E36209;--shiki-dark:#FFAB70;">weight</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">3</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    server 10.0.0.13:8080 </span><span style="--shiki-light:#E36209;--shiki-dark:#FFAB70;">weight</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">1</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;   </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 新扩容机器，先少分流量灰度</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    # 主动健康检查：每 5s 探一次 /healthz，失败 2 次剔除，恢复 3 次回池</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    check interval=5000 rise=3 fall=2 timeout=2000;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">upstream</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> backend_static </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    server</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> 10.0.1.11:80;</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    server</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> 10.0.1.12:80;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">server</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> {</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    listen </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">80</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    # 按路径分流（L7 的核心能力）</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    location</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> /api/ </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        proxy_pass </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">http://backend_api;</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        proxy_set_header </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Host $host;</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        proxy_set_header </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">X-Real-IP $remote_addr;   </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 后端拿真实客户端 IP</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    location</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> /static/ </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        proxy_pass </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">http://backend_static;</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        expires </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">30d</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;                                </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 静态资源长缓存</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    location</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> /ws/ </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        proxy_pass </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">http://backend_api;</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        proxy_http_version </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">1.1</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        proxy_set_header </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Upgrade $http_upgrade;     </span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># WebSocket 需要协议升级</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        proxy_set_header </span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">Connection </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;upgrade&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre></div><blockquote><p>说明：生产环境几乎不用纯轮询，而是<strong>加权轮询 + 健康检查</strong>的组合；一致性哈希（<code>hash $remote_addr consistent</code>）只在需要会话保持/缓存亲和时才加——而会话保持本身是「补丁」，根治方案见题目 3。</p></blockquote><h4 id="_4-lb-自身的高可用-vip-漂移" tabindex="-1">4. LB 自身的高可用（VIP 漂移） <a class="header-anchor" href="#_4-lb-自身的高可用-vip-漂移" aria-label="Permalink to &quot;4. LB 自身的高可用（VIP 漂移）&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>                虚拟 IP（VIP：对外只暴露这一个 IP）</span></span>
+<span class="line"><span>                        │</span></span>
+<span class="line"><span>        ┌───────────────┴───────────────┐</span></span>
+<span class="line"><span>        ▼                               ▼</span></span>
+<span class="line"><span>    LB 主（keepalived 节点1）        LB 备（keepalived 节点2）</span></span>
+<span class="line"><span>        │         心跳（VRRP 组播）       │</span></span>
+<span class="line"><span>        └───────────────┬───────────────┘</span></span>
+<span class="line"><span>                        │</span></span>
+<span class="line"><span>                    后端集群</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>主 LB 故障 → 心跳中断 → 备节点接管 VIP（约 1s）→ 客户端无感知</span></span></code></pre></div><p>两个细节：</p><ol><li><strong>主备 vs 双活</strong>：双活需要会话同步、复杂度高；读多场景主备足够。</li><li><strong>只做一层 LB 有风险</strong>：DDoS 到 L4 之前没有清洗层，LB 直接被打瘫 → 入口要分层（云 WAF/清洗 → LB → 后端）。</li></ol><h4 id="评分要点-共-10-分-≥7-分合格" tabindex="-1">评分要点（共 10 分，≥7 分合格） <a class="header-anchor" href="#评分要点-共-10-分-≥7-分合格" aria-label="Permalink to &quot;评分要点（共 10 分，≥7 分合格）&quot;">​</a></h4><ul><li>[ ] <strong>2 分</strong>：区分了 L4 / L7 的适用场景，且给出「能用 L4 就用 L4」的原则</li><li>[ ] <strong>2 分</strong>：机器数有算式（ceil(峰值 / 单机容量) + 冗余），单机容量标注为<strong>压测值</strong></li><li>[ ] <strong>2 分</strong>：Nginx 配置包含加权轮询 + 健康检查 + 按路径分流三要素</li><li>[ ] <strong>1 分</strong>：<code>proxy_set_header X-Real-IP</code> 传真实 IP（否则后端只能看到 LB 的 IP）</li><li>[ ] <strong>2 分</strong>：LB 自身高可用用主备 + VIP 漂移，且提到 DDoS 清洗层</li><li>[ ] <strong>1 分</strong>：提醒了「LB 自身容量要按峰值 + 余量配置」</li><li>[ ] 扣分项：数据库入口用 Nginx 做 L7 转发 → 扣 2 分</li><li>[ ] 扣分项：健康检查接口里查数据库 → 扣 2 分（见题目 2）</li></ul></details><hr><h2 id="题目-2-·-健康检查-healthz-该检查什么-对应概念-05" tabindex="-1">题目 2 · 健康检查：/healthz 该检查什么（对应概念 05） <a class="header-anchor" href="#题目-2-·-健康检查-healthz-该检查什么-对应概念-05" aria-label="Permalink to &quot;题目 2 · 健康检查：/healthz 该检查什么（对应概念 05）&quot;">​</a></h2><p><strong>难度</strong>：进阶</p><p><strong>题目</strong>：你们的 LB 每 5 秒探测一次 <code>/healthz</code>，连续 2 次失败就摘掉该实例。某天数据库抖动了 10 秒，结果<strong>所有应用实例被整批摘掉</strong>，流量全部打到 LB 直接 503，故障从「数据库抖一下」放大成「全站不可用」。</p><p><strong>要求</strong>：</p><ol><li>分析事故链条，指出根因</li><li>给出 <code>/healthz</code> 的正确设计（要包含什么、绝不检查什么）</li><li>区分「主动检查」与「被动检查」，给出推荐的参数配置</li><li>说明「就绪探针」与「存活探针」的区别（就绪 = 能否接流量，存活 = 要不要重启）</li></ol><p><strong>提示</strong>：前端锚点——这就是「健康检查接口不要做成全链路探测」：一个轻量心跳如果被塞进了重依赖，抖动就会被放大成雪崩。</p><details><summary>参考答案</summary><h4 id="_1-事故链条与根因" tabindex="-1">1. 事故链条与根因 <a class="header-anchor" href="#_1-事故链条与根因" aria-label="Permalink to &quot;1. 事故链条与根因&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>时间线：</span></span>
+<span class="line"><span>  T+0s   数据库抖动，连接超时</span></span>
+<span class="line"><span>  T+0s   /healthz 里检查了数据库连通性 → 全部实例返回 500</span></span>
+<span class="line"><span>  T+5s   LB 第一次探测失败（计数 1）</span></span>
+<span class="line"><span>  T+10s  LB 第二次探测失败（计数 2）→ 触发剔除阈值</span></span>
+<span class="line"><span>  T+10s  所有实例被摘掉，LB 后面没有可用后端 → 全部请求 503</span></span>
+<span class="line"><span>  T+15s  数据库恢复</span></span>
+<span class="line"><span>  T+15s  实例恢复健康，但要连续 3 次成功（15 秒）才回池</span></span>
+<span class="line"><span>  → 故障窗口：约 20 秒的全站不可用（原本只是数据库抖 10 秒）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>根因：/healthz 检查了「下游依赖」而不是「自身存活」。</span></span>
+<span class="line"><span>      数据库是所有实例共享的，一抖动就同时判所有实例死亡 →</span></span>
+<span class="line"><span>      剔除动作不是「摘掉坏节点」，而是「摘掉整个集群」。</span></span></code></pre></div><h4 id="_2-healthz-的正确设计" tabindex="-1">2. /healthz 的正确设计 <a class="header-anchor" href="#_2-healthz-的正确设计" aria-label="Permalink to &quot;2. /healthz 的正确设计&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>✅ 应该检查（轻量、只关乎自身）：</span></span>
+<span class="line"><span>   ① 进程存活（能响应 HTTP）</span></span>
+<span class="line"><span>   ② 关键资源轻量探测：</span></span>
+<span class="line"><span>      - 连接池是否有可用连接（不看能否连上 DB，只看本地池状态）</span></span>
+<span class="line"><span>      - 磁盘可写（临时目录）</span></span>
+<span class="line"><span>      - 内存是否超过阈值</span></span>
+<span class="line"><span>   ③ 必要的「启动完成」标记（初始化没跑完就不接流量）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>❌ 绝不检查：</span></span>
+<span class="line"><span>   ① 数据库连通性 ← 本题事故的元凶</span></span>
+<span class="line"><span>   ② 下游 RPC 服务可用性</span></span>
+<span class="line"><span>   ③ 缓存/消息队列连通性</span></span>
+<span class="line"><span>   ④ 任何需要网络往返的重操作</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>判据：/healthz 必须在 10 ms 内返回，且**不依赖任何外部组件**。</span></span>
+<span class="line"><span>     外部依赖的可用性由「熔断降级」处理，而不是靠摘实例。</span></span></code></pre></div><p>示例实现（伪代码）：</p><div class="language-python vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">python</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">@app.get</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;/healthz&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">)</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">def</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> healthz</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">():</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">    # 只查自身：进程活着 + 连接池没被耗尽 + 磁盘可写</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> pool.available() </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">==</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">:</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> {</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;status&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;unhealthy&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;reason&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;pool exhausted&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">503</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> disk.free_gb() </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">&lt;</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 1</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">:</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> {</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;status&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;unhealthy&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;reason&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;disk full&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">503</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    return</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> {</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;status&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;ok&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}, </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">200</span></span></code></pre></div><p>注意这里<strong>不连数据库</strong>：连接池耗尽是「自身状态」，可以报；但「数据库连不上」属于外部故障，应该让请求正常进来、由业务逻辑走降级/熔断，而不是让 LB 摘实例。</p><h4 id="_3-主动检查-vs-被动检查" tabindex="-1">3. 主动检查 vs 被动检查 <a class="header-anchor" href="#_3-主动检查-vs-被动检查" aria-label="Permalink to &quot;3. 主动检查 vs 被动检查&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>主动检查（LB 定期探测）：</span></span>
+<span class="line"><span>  间隔 5s 发 GET /healthz，要求 200 且响应体含 &quot;ok&quot;</span></span>
+<span class="line"><span>  → 连续 2 次失败剔除（不再转发）</span></span>
+<span class="line"><span>  → 连续 3 次成功恢复（重新加入）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  参数权衡：</span></span>
+<span class="line"><span>    间隔太短（1s）→ 探测本身成为负担，且更容易被抖动的误判</span></span>
+<span class="line"><span>    失败次数太少（1 次）→ 一次网络抖动就摘除，误伤率高</span></span>
+<span class="line"><span>    恢复次数太少（1 次）→ 实例刚起来还没预热就被打满，再次崩溃</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  推荐配置：间隔 5s、失败 2 次剔除、成功 3 次回池</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>被动检查（根据真实请求结果）：</span></span>
+<span class="line"><span>  后端连续返回 5xx → 熔断剔除</span></span>
+<span class="line"><span>  连接超时次数超阈值 → 剔除</span></span>
+<span class="line"><span>  → 优点：反映的是「真实用户体验」，而不是探测器的视角</span></span>
+<span class="line"><span>  → 推荐：主动 + 被动同时开启，主动做兜底，被动做快速反应</span></span></code></pre></div><h4 id="_4-就绪探针-vs-存活探针" tabindex="-1">4. 就绪探针 vs 存活探针 <a class="header-anchor" href="#_4-就绪探针-vs-存活探针" aria-label="Permalink to &quot;4. 就绪探针 vs 存活探针&quot;">​</a></h4><table tabindex="0"><thead><tr><th>探针</th><th>回答的问题</th><th>失败后果</th><th>检查内容</th></tr></thead><tbody><tr><td><strong>就绪（Readiness）</strong></td><td>能不能接流量？</td><td>从 LB 摘掉，<strong>不重启</strong></td><td>依赖是否就绪、是否正在优雅退出、负载是否过高</td></tr><tr><td><strong>存活（Liveness）</strong></td><td>要不要重启？</td><td><strong>杀掉进程重启</strong></td><td>进程是否死锁、是否陷入死循环</td></tr></tbody></table><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>关键区别与常见事故：</span></span>
+<span class="line"><span>  把「数据库连不上」放进存活探针</span></span>
+<span class="line"><span>  → 数据库抖动 → 所有实例被判定「不存活」→ 全部重启</span></span>
+<span class="line"><span>  → 重启后仍然连不上 → 继续重启 → 重启风暴（crash loop）</span></span>
+<span class="line"><span>  → 数据库恢复了，但应用在无限重启中，雪上加霜</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>正确做法：</span></span>
+<span class="line"><span>  存活探针只查「进程是否还活着」（如 HTTP 200 即可，或死锁检测）</span></span>
+<span class="line"><span>  就绪探针可以查依赖（因为失败只是摘流量，不会重启）</span></span>
+<span class="line"><span>  依赖类失败 → 就绪探针摘流量 + 业务层熔断降级</span></span></code></pre></div><h4 id="_5-事故复盘结论" tabindex="-1">5. 事故复盘结论 <a class="header-anchor" href="#_5-事故复盘结论" aria-label="Permalink to &quot;5. 事故复盘结论&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>改进项：</span></span>
+<span class="line"><span>  ① /healthz 移除数据库检查（根因修复）</span></span>
+<span class="line"><span>  ② 区分就绪/存活探针，依赖检查只放进就绪探针</span></span>
+<span class="line"><span>  ③ 加「剔除比例上限」：一次最多摘掉 30% 的实例，</span></span>
+<span class="line"><span>     超过则停止剔除并告警（防止「一键全摘」）</span></span>
+<span class="line"><span>  ④ 加熔断降级：数据库连不上时返回兜底数据，而不是 503</span></span></code></pre></div><h4 id="评分要点-共-10-分-≥7-分合格-1" tabindex="-1">评分要点（共 10 分，≥7 分合格） <a class="header-anchor" href="#评分要点-共-10-分-≥7-分合格-1" aria-label="Permalink to &quot;评分要点（共 10 分，≥7 分合格）&quot;">​</a></h4><ul><li>[ ] <strong>3 分</strong>：正确指出根因是「健康检查里查了共享的下游依赖」，且解释了为什么会被放大（所有实例同时判死）</li><li>[ ] <strong>2 分</strong>：<code>/healthz</code> 设计给出「检查什么 + 不检查什么」的清单，且判据清晰（&lt; 10 ms、不依赖外部组件）</li><li>[ ] <strong>2 分</strong>：主动/被动检查都讲了，且给出推荐参数（5s / 2 次剔除 / 3 次恢复）</li><li>[ ] <strong>2 分</strong>：就绪探针与存活探针的区别讲清楚（摘流量 vs 重启），且指出「依赖检查放进存活探针会导致重启风暴」</li><li>[ ] <strong>1 分</strong>：复盘里提出了「剔除比例上限」这类防放大机制</li><li>[ ] 扣分项：仍建议在 <code>/healthz</code> 里查数据库 → 直接扣 4 分</li></ul></details><hr><h2 id="题目-3-·-会话保持-从-sticky-到无状态化-对应概念-05" tabindex="-1">题目 3 · 会话保持：从 sticky 到无状态化（对应概念 05） <a class="header-anchor" href="#题目-3-·-会话保持-从-sticky-到无状态化-对应概念-05" aria-label="Permalink to &quot;题目 3 · 会话保持：从 sticky 到无状态化（对应概念 05）&quot;">​</a></h2><p><strong>难度</strong>：进阶</p><p><strong>题目</strong>：一个电商网站把用户 session 存在应用实例的内存里，用 LB 的 IP Hash 做会话保持。最近出现两个问题：① 扩容新机器后，部分用户被重新哈希到新机器，登录态丢失；② 某台机器重启，它的用户全部掉线。请给出解决方案。</p><p><strong>要求</strong>：</p><ol><li>分析 sticky session 与 IP Hash 的失效场景（至少 3 个）</li><li>给出「<strong>根治方案</strong>」（无状态化）的具体做法，并对比三种 session 外置方案</li><li>说明改造后 LB 算法可以退化成什么，带来什么好处</li><li>指出哪些场景<strong>确实需要</strong>会话保持（不能一刀切说「sticky 永远错」）</li></ol><p><strong>提示</strong>：前端锚点——这就是把「服务端状态」从组件内部挪到外部 store：组件变成纯函数，随便扩缩容都不丢状态。</p><details><summary>参考答案</summary><h4 id="_1-会话保持的失效场景" tabindex="-1">1. 会话保持的失效场景 <a class="header-anchor" href="#_1-会话保持的失效场景" aria-label="Permalink to &quot;1. 会话保持的失效场景&quot;">​</a></h4><table tabindex="0"><thead><tr><th>方案</th><th>失效场景</th><th>后果</th></tr></thead><tbody><tr><td><strong>Sticky Session</strong>（LB 记映射）</td><td>① 后端重启/扩容 → 映射失效<br>② 用户 IP 变化（移动网络切基站、WiFi 切 4G）<br>③ 分布不均（大客户 IP 集中，某台机器特别热）</td><td>登录态丢失、负载倾斜</td></tr><tr><td><strong>IP Hash</strong>（哈希取模）</td><td>① <strong>扩容即失效</strong>：3 台扩到 4 台，<code>hash % 3</code> 变 <code>hash % 4</code>，约 75% 的用户被重新路由<br>② NAT 环境下大量用户共用同一出口 IP → 严重倾斜<br>③ 同上，IP 变化失效</td><td>大规模掉线</td></tr><tr><td><strong>内存 session</strong></td><td>任何实例重启都导致该实例的用户全掉</td><td>发版即掉线</td></tr></tbody></table><p><strong>核心问题</strong>：会话保持是<strong>把状态绑在机器上</strong>，而机器的生命周期是不可靠的（会重启、会扩缩容、会故障）——这就是「补丁」而非「根治」。</p><h4 id="_2-根治方案-无状态化-状态外置" tabindex="-1">2. 根治方案：无状态化（状态外置） <a class="header-anchor" href="#_2-根治方案-无状态化-状态外置" aria-label="Permalink to &quot;2. 根治方案：无状态化（状态外置）&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>改造前：</span></span>
+<span class="line"><span>  用户 → LB（IP Hash）→ 实例 A（内存 session）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>改造后：</span></span>
+<span class="line"><span>  用户 → LB（轮询）→ 任意实例 ──► Redis（共享 session）</span></span>
+<span class="line"><span>                                 或 JWT（签名令牌，无服务端存储）</span></span></code></pre></div><p>三种方案对比：</p><table tabindex="0"><thead><tr><th>方案</th><th>做法</th><th>优点</th><th>缺点</th><th>适用</th></tr></thead><tbody><tr><td><strong>Redis 集中存储</strong></td><td>session 存 Redis，实例只存 sessionId（Cookie）</td><td>集中管理、可主动踢人、容量大</td><td>多一次网络往返（约 1 ms）；Redis 挂了要降级</td><td><strong>默认推荐</strong></td></tr><tr><td><strong>JWT 无状态令牌</strong></td><td>用户身份与权限签名后放 token，服务端不存</td><td>零存储、零查询，扩展性最好</td><td>无法主动失效（签发后到过期前一直有效）；token 较大</td><td>对「踢人」要求不高的场景</td></tr><tr><td><strong>Cookie 存 session</strong></td><td>加密后放 Cookie</td><td>与 JWT 类似，实现简单</td><td>Cookie 大小限制（4 KB）、每次请求都带上</td><td>极简场景</td></tr></tbody></table><p><strong>推荐组合</strong>：</p><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>① 访问令牌用 JWT（短期，15 分钟），减少 Redis 查询</span></span>
+<span class="line"><span>② 刷新令牌存 Redis（长期，7 天），保证可以主动踢人和续期</span></span>
+<span class="line"><span>③ 敏感操作（改密码、支付）强制查 Redis 校验</span></span></code></pre></div><h4 id="_3-改造后的收益" tabindex="-1">3. 改造后的收益 <a class="header-anchor" href="#_3-改造后的收益" aria-label="Permalink to &quot;3. 改造后的收益&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>① LB 算法退化为最简单的轮询（Round Robin）</span></span>
+<span class="line"><span>   → 不需要一致性哈希、不需要 sticky 表，配置和心智负担都降到最低</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>② 任意横向扩缩容</span></span>
+<span class="line"><span>   → 扩容时新机器立刻能接任何请求，不需要预热 session、不需要迁移</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>③ 发版不再掉线</span></span>
+<span class="line"><span>   → 滚动发布时实例逐个重启，用户请求被 LB 分到其他实例，无感知</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>④ 故障恢复快</span></span>
+<span class="line"><span>   → 某实例宕机，LB 健康检查摘掉它，用户请求自动分到健康的实例</span></span></code></pre></div><h4 id="_4-哪些场景确实需要会话保持" tabindex="-1">4. 哪些场景确实需要会话保持 <a class="header-anchor" href="#_4-哪些场景确实需要会话保持" aria-label="Permalink to &quot;4. 哪些场景确实需要会话保持&quot;">​</a></h4><p>「无状态化优先」不等于 sticky 永远错，以下场景可以接受会话绑定：</p><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>① WebSocket / 长连接</span></span>
+<span class="line"><span>   连接本身就绑定在一台机器上（TCP 连接无法迁移）</span></span>
+<span class="line"><span>   → 必须保证同一连接打到同一实例；但连接断开重连时可以重新分配</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>② 本地缓存亲和（缓存热点数据在本地内存）</span></span>
+<span class="line"><span>   让同一 key 的请求打到同一实例，提高本地缓存命中率</span></span>
+<span class="line"><span>   → 但要注意：扩容时缓存会大量失效（缓存命中率短暂下跌）</span></span>
+<span class="line"><span>   → 更好的做法：用一致性哈希 + 一层集中缓存兜底</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>③ 有状态的计算任务（如流式处理、游戏房间）</span></span>
+<span class="line"><span>   状态天然与进程绑定，需要额外的状态持久化 + 故障转移机制</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>判据：先问「能不能把状态拿出来」。能拿出来就拿出来（推荐）；</span></span>
+<span class="line"><span>      拿不出来（如 TCP 连接）再接受绑定，并设计好重连与故障转移。</span></span></code></pre></div><h4 id="评分要点-共-10-分-≥7-分合格-2" tabindex="-1">评分要点（共 10 分，≥7 分合格） <a class="header-anchor" href="#评分要点-共-10-分-≥7-分合格-2" aria-label="Permalink to &quot;评分要点（共 10 分，≥7 分合格）&quot;">​</a></h4><ul><li>[ ] <strong>2 分</strong>：列出 ≥ 3 个 sticky / IP Hash 的失效场景，且解释了「扩容导致大规模 rehash」的量化后果（3→4 台约 75% 重路由）</li><li>[ ] <strong>3 分</strong>：给出无状态化方案，对比 ≥ 3 种 session 外置方案（Redis / JWT / Cookie），各有优缺点</li><li>[ ] <strong>2 分</strong>：说明改造后 LB 退化为轮询，并列出 ≥ 3 条收益（扩缩容、发版不掉线、故障恢复）</li><li>[ ] <strong>2 分</strong>：指出哪些场景确实需要会话保持（WebSocket / 缓存亲和 / 有状态计算），且给出判据</li><li>[ ] <strong>1 分</strong>：提到「会话保持是补丁，无状态化是根治」这个核心结论</li><li>[ ] 加分：给出 JWT + Redis 的组合方案（短期 JWT + 长期刷新令牌）</li><li>[ ] 扣分项：一刀切说「sticky 永远错」而不讨论长连接场景 → 扣 1 分</li></ul></details><hr><h2 id="题目-4-·-消息队列-解耦与削峰-对应概念-06" tabindex="-1">题目 4 · 消息队列：解耦与削峰（对应概念 06） <a class="header-anchor" href="#题目-4-·-消息队列-解耦与削峰-对应概念-06" aria-label="Permalink to &quot;题目 4 · 消息队列：解耦与削峰（对应概念 06）&quot;">​</a></h2><p><strong>难度</strong>：基础</p><p><strong>题目</strong>：下单接口目前是同步调用：写订单库（20 ms）→ 发短信（50 ms）→ 加积分（30 ms）→ 更新统计（20 ms），用户等待 120 ms，且短信服务一挂，下单就失败。请改成消息队列异步化。</p><p><strong>要求</strong>：</p><ol><li>画出改造前后的调用链路图（同步 vs 异步）</li><li>计算改造前后的用户等待时间与系统吞吐变化</li><li>说明 MQ 带来的三大收益，并指出<strong>代价</strong>（不能有好处没代价）</li><li>给出 MQ 选型建议（Kafka / RabbitMQ / Redis Stream 三选一）及理由</li><li>指出哪些步骤<strong>不能</strong>异步化，为什么</li></ol><p><strong>要求补充</strong>：假设促销期间下单峰值 1 万 QPS，而订单库写入能力只有 1000 QPS，如何用 MQ 削峰？给出具体参数（队列容量、消费速率、用户感知延迟）。</p><p><strong>提示</strong>：前端锚点——MQ 就是<strong>跨服务的事件总线</strong>：Vue 的 <code>mitt</code>、React 的发布订阅都是「发消息的人不认识收消息的人」；区别是 MQ 持久化、可重放、可追踪。</p><details><summary>参考答案</summary><h4 id="_1-链路对比" tabindex="-1">1. 链路对比 <a class="header-anchor" href="#_1-链路对比" aria-label="Permalink to &quot;1. 链路对比&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>改造前（同步）：</span></span>
+<span class="line"><span>  下单请求 ──► 订单服务 ──► 写库(20ms)</span></span>
+<span class="line"><span>                    ├──────► 短信服务(50ms)</span></span>
+<span class="line"><span>                    ├──────► 积分服务(30ms)</span></span>
+<span class="line"><span>                    └──────► 统计服务(20ms)</span></span>
+<span class="line"><span>  → 用户等待 120 ms；短信服务一挂，下单整个失败（级联故障）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>改造后（异步 + MQ）：</span></span>
+<span class="line"><span>  下单请求 ──► 订单服务 ──► 写库(20ms) + 投递「订单创建」事件 ──► 立即返回</span></span>
+<span class="line"><span>                                    │</span></span>
+<span class="line"><span>                                    ▼</span></span>
+<span class="line"><span>                            [订单事件队列 / Topic]</span></span>
+<span class="line"><span>                            ──┬────┬────┬────</span></span>
+<span class="line"><span>                              ▼    ▼    ▼    ▼</span></span>
+<span class="line"><span>                            短信  积分  统计  推荐（各自独立消费）</span></span>
+<span class="line"><span>  → 用户只等写库的时间；下游慢/挂都不影响下单</span></span></code></pre></div><h4 id="_2-延迟与吞吐计算" tabindex="-1">2. 延迟与吞吐计算 <a class="header-anchor" href="#_2-延迟与吞吐计算" aria-label="Permalink to &quot;2. 延迟与吞吐计算&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>【延迟】</span></span>
+<span class="line"><span>  改造前：20 + 50 + 30 + 20 = 120 ms（串行累加）</span></span>
+<span class="line"><span>  改造后：20 ms（只等写库）+ 投递 MQ 约 5 ms = 约 25 ms</span></span>
+<span class="line"><span>  → 用户感知延迟下降 79%</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>【吞吐】</span></span>
+<span class="line"><span>  改造前：单机容量取决于最慢的链路。</span></span>
+<span class="line"><span>    假设单机 100 并发，RT 120 ms：</span></span>
+<span class="line"><span>    单机 QPS = 100 / 0.12 ≈ 833 QPS</span></span>
+<span class="line"><span>  改造后：RT 降到 25 ms：</span></span>
+<span class="line"><span>    单机 QPS = 100 / 0.025 = 4000 QPS</span></span>
+<span class="line"><span>  → 同样的机器，吞吐提升约 4.8 倍</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>【故障隔离】</span></span>
+<span class="line"><span>  改造前：任一下游不可用 → 下单失败率 = 该下游的失败率</span></span>
+<span class="line"><span>  改造后：下游不可用 → 消息堆积，下单成功率不受影响</span></span></code></pre></div><h4 id="_3-三大收益与代价" tabindex="-1">3. 三大收益与代价 <a class="header-anchor" href="#_3-三大收益与代价" aria-label="Permalink to &quot;3. 三大收益与代价&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>收益：</span></span>
+<span class="line"><span>  ① 解耦：新增「优惠券服务」只需订阅事件，不用改下单代码</span></span>
+<span class="line"><span>  ② 削峰：洪峰被队列缓冲，下游按自己的能力消费</span></span>
+<span class="line"><span>  ③ 异步：耗时操作不阻塞主请求</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>代价（必须有）：</span></span>
+<span class="line"><span>  ① 引入最终一致：下单成功后，积分可能几秒后才到账</span></span>
+<span class="line"><span>     → 需要向用户解释（「积分将在 5 分钟内到账」）</span></span>
+<span class="line"><span>  ② 多一个组件：MQ 本身要部署、监控、扩容，运维成本上升</span></span>
+<span class="line"><span>  ③ 可追踪性变难：原来是同步调用栈，现在是跨服务的消息流</span></span>
+<span class="line"><span>     → 必须做链路追踪（traceId 透传）+ 消息轨迹查询</span></span>
+<span class="line"><span>  ④ 消息可靠性问题：可能丢、可能重复 → 消费者必须做幂等（见题目 5）</span></span></code></pre></div><h4 id="_4-选型建议" tabindex="-1">4. 选型建议 <a class="header-anchor" href="#_4-选型建议" aria-label="Permalink to &quot;4. 选型建议&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>本场景：每天订单量约 100 万（峰值 1 万 QPS），需要可靠投递 + 按业务路由</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>选 RabbitMQ。理由：</span></span>
+<span class="line"><span>  ① 吞吐需求：1 万 QPS 远低于 Kafka 的百万级，用不上 Kafka 的吞吐优势</span></span>
+<span class="line"><span>  ② 路由能力：不同事件（下单/支付/退款）要分发给不同消费者，</span></span>
+<span class="line"><span>     RabbitMQ 的 exchange 按 routing key 路由最合适（Kafka 的 topic 只能广播）</span></span>
+<span class="line"><span>  ③ 可靠性：RabbitMQ 的 confirm/ack 机制成熟，业务消息场景更合适</span></span>
+<span class="line"><span>  ④ 运维成本：RabbitMQ 比 Kafka（依赖 ZooKeeper/KRaft）轻得多</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>不选 Kafka 的理由：为「每天百万条」的消息上 Kafka 集群 = 拿大炮打蚊子，</span></span>
+<span class="line"><span>                   多一层组件就多一层故障和运维成本</span></span>
+<span class="line"><span>不选 Redis Stream 的理由：可靠性较弱（依赖持久化配置），</span></span>
+<span class="line"><span>                         适合临时任务/简单削峰，不适合订单这类核心业务</span></span></code></pre></div><h4 id="_5-哪些步骤不能异步化" tabindex="-1">5. 哪些步骤不能异步化 <a class="header-anchor" href="#_5-哪些步骤不能异步化" aria-label="Permalink to &quot;5. 哪些步骤不能异步化&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>❌ 不能异步的：</span></span>
+<span class="line"><span>  ① 库存扣减——用户在等「我买到了没有」，必须同步返回结果</span></span>
+<span class="line"><span>  ② 支付结果查询——用户要立刻知道「付成功了没」</span></span>
+<span class="line"><span>  ③ 余额查询/校验——要立刻拿到结果做决策</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>判据：MQ 只适合「可以等」的业务。</span></span>
+<span class="line"><span>     凡是「用户必须立刻拿到结果才能继续」的操作，都不能异步化。</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>折中方案：</span></span>
+<span class="line"><span>  库存扣减同步做（保证不超卖），</span></span>
+<span class="line"><span>  后续的「扣减成功」事件异步广播给各下游。</span></span></code></pre></div><h4 id="_6-削峰计算-1-万-qps-洪峰-vs-1000-qps-写入能力" tabindex="-1">6. 削峰计算（1 万 QPS 洪峰 vs 1000 QPS 写入能力） <a class="header-anchor" href="#_6-削峰计算-1-万-qps-洪峰-vs-1000-qps-写入能力" aria-label="Permalink to &quot;6. 削峰计算（1 万 QPS 洪峰 vs 1000 QPS 写入能力）&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>已知：</span></span>
+<span class="line"><span>  下单峰值      = 10,000 QPS</span></span>
+<span class="line"><span>  订单库写能力  = 1,000 QPS</span></span>
+<span class="line"><span>  促销活动持续  = 10 分钟 = 600 秒</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>计算需要缓冲的消息量：</span></span>
+<span class="line"><span>  积压速率 = 10,000 - 1,000 = 9,000 条/秒</span></span>
+<span class="line"><span>  总积压   = 9,000 × 600 = 540 万条</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>队列容量规划：</span></span>
+<span class="line"><span>  单条消息约 1 KB → 540 万 × 1 KB ≈ 5.4 GB</span></span>
+<span class="line"><span>  → RabbitMQ 队列要能扛 5.4 GB 堆积（或设置磁盘阈值 + 持久化）</span></span>
+<span class="line"><span>  → 更安全：把「下单请求」先落库为「待处理」状态，MQ 只传 ID</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>消费追赶时间：</span></span>
+<span class="line"><span>  活动结束后，消费端以 1,000 QPS 继续消费 540 万条</span></span>
+<span class="line"><span>  需要 540 万 / 1000 = 5400 秒 = 90 分钟 才能追平</span></span>
+<span class="line"><span>  → 必须提前扩容消费者（如临时扩到 10 个消费者并行，但受 DB 写能力限制，扩消费者无用！）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>关键洞察：</span></span>
+<span class="line"><span>  瓶颈在 DB 写能力（1000 QPS），扩消费者**没有用**</span></span>
+<span class="line"><span>  → 真正的解法是提前做「库存预热 + 异步下单」：</span></span>
+<span class="line"><span>    ① 请求进来先写 MQ，立即返回「排队中」（用户感知延迟 = 排队时间）</span></span>
+<span class="line"><span>    ② 消费端按 1000 QPS 匀速处理，处理完发短信/推送通知用户</span></span>
+<span class="line"><span>    ③ 用户感知：不是「等 2 秒转圈」，而是「下单成功，稍后通知结果」</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  排队时间估算（用户感知）：</span></span>
+<span class="line"><span>    第 N 个请求等待时间 ≈ N / 1000 秒</span></span>
+<span class="line"><span>    → 第 540 万个请求要等 5400 秒（90 分钟）→ 不可接受</span></span>
+<span class="line"><span>    → 所以削峰必须配合「限流」：超出的请求直接拒绝（返回「已售罄/稍后再试」），</span></span>
+<span class="line"><span>      而不是无限堆积让大家一起等 90 分钟</span></span></code></pre></div><h4 id="评分要点-共-10-分-≥7-分合格-3" tabindex="-1">评分要点（共 10 分，≥7 分合格） <a class="header-anchor" href="#评分要点-共-10-分-≥7-分合格-3" aria-label="Permalink to &quot;评分要点（共 10 分，≥7 分合格）&quot;">​</a></h4><ul><li>[ ] <strong>2 分</strong>：画出同步 vs 异步两张链路图，标出各步骤耗时</li><li>[ ] <strong>1 分</strong>：延迟与吞吐有计算过程（120ms → 25ms，833 → 4000 QPS）</li><li>[ ] <strong>2 分</strong>：三大收益 + <strong>至少 3 条代价</strong>（只讲好处不讲代价扣 2 分）</li><li>[ ] <strong>2 分</strong>：选型有理由（对比吞吐/路由/可靠性/运维四要素），且排除了不适用的选项</li><li>[ ] <strong>1 分</strong>：指出库存扣减、支付查询等<strong>不能</strong>异步的步骤，并给出判据</li><li>[ ] <strong>2 分</strong>：削峰有量化计算（积压量、队列容量、追赶时间），且指出「瓶颈在 DB 时扩消费者无效」</li><li>[ ] 加分：指出「无限堆积不如限流拒绝」——排队 90 分钟比直接拒绝体验更差</li><li>[ ] 扣分项：为百万级消息量选 Kafka 且不说明理由 → 扣 1 分</li></ul></details><hr><h2 id="题目-5-·-消息顺序、幂等与死信-对应概念-06" tabindex="-1">题目 5 · 消息顺序、幂等与死信（对应概念 06） <a class="header-anchor" href="#题目-5-·-消息顺序、幂等与死信-对应概念-06" aria-label="Permalink to &quot;题目 5 · 消息顺序、幂等与死信（对应概念 06）&quot;">​</a></h2><p><strong>难度</strong>：进阶</p><p><strong>题目</strong>：订单事件流 <code>order_created → order_paid → order_shipped</code>，有三个下游：短信服务、库存服务、统计服务。现在出现了两个线上问题：① 偶尔出现「先收到已发货、后收到已支付」，导致状态机跑飞；② 网络重试导致重复发货短信。请解决。</p><p><strong>要求</strong>：</p><ol><li>设计<strong>分区键</strong>（保证同一订单的事件顺序），并解释「分区内有序、分区间无序」的含义</li><li>给出消费端<strong>幂等</strong>的实现方案（含具体代码逻辑或 SQL）</li><li>说明「至少一次 / 至多一次 / 恰好一次」的取舍，给出生产推荐</li><li>设计<strong>重试 + 死信队列</strong>流程，并说明死信的告警策略</li><li>说明消费者数量与分区数的关系，以及「扩容无效」的场景</li></ol><p><strong>提示</strong>：前端锚点——分区键 ≈ 给同一实体的事件排队；幂等 ≈ 前端防重复提交（同一个请求发两次只生效一次）。</p><details><summary>参考答案</summary><h4 id="_1-分区键设计-保证同一订单的事件顺序" tabindex="-1">1. 分区键设计：保证同一订单的事件顺序 <a class="header-anchor" href="#_1-分区键设计-保证同一订单的事件顺序" aria-label="Permalink to &quot;1. 分区键设计：保证同一订单的事件顺序&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>错误做法：按事件类型分区、或随机分区</span></span>
+<span class="line"><span>  分区0: [order#1 created] [order#5 created] ...</span></span>
+<span class="line"><span>  分区1: [order#1 paid]    [order#3 created] ...</span></span>
+<span class="line"><span>  → 同一订单的事件散在不同分区，不同消费者并行处理 → 乱序！</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>正确做法：用「订单号」做分区键（partition key）</span></span>
+<span class="line"><span>  partition = hash(order_id) % partition_count</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  分区0: [order#1 created] → [order#1 paid] → [order#1 shipped]</span></span>
+<span class="line"><span>  分区1: [order#7 created] → [order#7 paid] ...</span></span>
+<span class="line"><span>  → 同一订单的所有事件进同一个分区，由同一个消费者顺序处理 ✅</span></span></code></pre></div><p><strong>「分区内有序、分区间无序」的含义</strong>：</p><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>分区内有序：同一分区的消息按投递顺序消费 → 同一订单的状态迁移不会乱序</span></span>
+<span class="line"><span>分区间无序：不同订单之间的先后顺序没有保证</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>为什么这样就够了：</span></span>
+<span class="line"><span>  业务上只需要保证「同一订单的生命周期事件有序」，</span></span>
+<span class="line"><span>  订单 A 和订单 B 谁先处理完全无所谓（没有业务依赖）</span></span>
+<span class="line"><span>  → 用分区键把「需要保证顺序的粒度」圈起来，是 MQ 设计的核心技巧</span></span></code></pre></div><h4 id="_2-消费端幂等实现" tabindex="-1">2. 消费端幂等实现 <a class="header-anchor" href="#_2-消费端幂等实现" aria-label="Permalink to &quot;2. 消费端幂等实现&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>核心思路：消息带唯一键，处理前先查「已处理表」，处理与记录在同一事务里</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>① 消息体带唯一键：</span></span>
+<span class="line"><span>   message_id（全局唯一，MQ 生成）</span></span>
+<span class="line"><span>   业务键：order_id + event_type（如 &quot;10086:order_paid&quot;）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>② 建已处理表（唯一索引兜底）：</span></span>
+<span class="line"><span>   CREATE TABLE processed_message (</span></span>
+<span class="line"><span>     biz_key     VARCHAR(128) PRIMARY KEY,   -- order_id:event_type</span></span>
+<span class="line"><span>     message_id  VARCHAR(64),</span></span>
+<span class="line"><span>     processed_at DATETIME</span></span>
+<span class="line"><span>   );</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>③ 消费逻辑（事务内完成）：</span></span></code></pre></div><div class="language-python vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">python</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">def</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> handle_order_paid</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(msg):</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    biz_key </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> f</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">{</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">msg.order_id</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">}</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">:order_paid&quot;</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">    with</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> db.transaction():</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        # INSERT IGNORE：已存在则影响行数为 0，直接跳过</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        affected </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">=</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> db.execute(</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">            &quot;INSERT IGNORE INTO processed_message (biz_key, message_id, processed_at)&quot;</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">            &quot; VALUES (?, ?, NOW())&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">, biz_key, msg.message_id)</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">        if</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> affected </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">==</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> 0</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">:</span></span>
+<span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">            return</span><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">              # 已处理过，幂等跳过（重复投递无害）</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        # 真正的业务逻辑：发货短信、扣库存等</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        send_shipping_sms(msg.order_id)</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        # 注意：业务处理与「已处理」记录在同一个事务里 → 原子</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">        # 要么都成功（记录 + 业务），要么都回滚（下次重新消费）</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 关键：不要把「记录已处理」和「执行业务」拆成两个事务，</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">#       否则业务成功、记录失败 → 下次重复消费，依然会重复发短信</span></span></code></pre></div><h4 id="_3-投递语义的取舍" tabindex="-1">3. 投递语义的取舍 <a class="header-anchor" href="#_3-投递语义的取舍" aria-label="Permalink to &quot;3. 投递语义的取舍&quot;">​</a></h4><table tabindex="0"><thead><tr><th>语义</th><th>机制</th><th>代价</th><th>适用</th></tr></thead><tbody><tr><td>至多一次</td><td>收到即 ack，不重试</td><td>可能丢消息</td><td>可容忍丢失的日志/埋点</td></tr><tr><td><strong>至少一次</strong></td><td>处理成功后 ack；失败不 ack 重新投递</td><td><strong>可能重复消费</strong></td><td><strong>默认选择（配幂等）</strong></td></tr><tr><td>恰好一次</td><td>事务 / 幂等键去重</td><td>性能与复杂度最高</td><td>支付、账务等必须精确</td></tr></tbody></table><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>生产推荐：至少一次 + 消费端幂等</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>为什么不直接上「恰好一次」：</span></span>
+<span class="line"><span>  实现依赖端到端事务（MQ 与数据库之间做分布式事务），</span></span>
+<span class="line"><span>  性能损耗大、实现复杂、故障排查难。</span></span>
+<span class="line"><span>  而「至少一次 + 幂等」用一张去重表就解决了，简单可靠。</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>注意：「至少一次」意味着重复消费是**必然发生**的（网络重试、消费者重启、</span></span>
+<span class="line"><span>       rebalance 都会触发），所以幂等**不是可选项，是必选项**。</span></span></code></pre></div><h4 id="_4-重试-死信队列流程" tabindex="-1">4. 重试 + 死信队列流程 <a class="header-anchor" href="#_4-重试-死信队列流程" aria-label="Permalink to &quot;4. 重试 + 死信队列流程&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>消费失败 → 重试队列（延迟 1s / 5s / 30s 递增）→ 重试 3 次仍失败 → DLQ（死信队列）</span></span>
+<span class="line"><span>                                                                    │</span></span>
+<span class="line"><span>                                                          ┌─────────┴─────────┐</span></span>
+<span class="line"><span>                                                          ▼                   ▼</span></span>
+<span class="line"><span>                                                    告警：通知值班人员    人工分析/补偿</span></span></code></pre></div><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>DLQ 设计要点：</span></span>
+<span class="line"><span>  ① 死信消息保留原始内容 + 失败原因 + 重试次数 + 最后错误堆栈</span></span>
+<span class="line"><span>  ② 提供「一键重投」工具：问题解决后批量把死信放回主队列</span></span>
+<span class="line"><span>  ③ 告警策略：</span></span>
+<span class="line"><span>     - 死信数 &gt; 0 持续 1 分钟 → 告警（说明有消息处理不了了）</span></span>
+<span class="line"><span>     - 死信数 5 分钟内增长 &gt; 100 → 紧急告警（说明是系统性问题）</span></span>
+<span class="line"><span>     - **死信堆积是重大事故的早期信号**：</span></span>
+<span class="line"><span>       订单事件死信堆积 = 下游正在丢失订单处理</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  ④ 常见死因：</span></span>
+<span class="line"><span>     - 下游服务长时间不可用</span></span>
+<span class="line"><span>     - 消息格式与代码不兼容（发版没做兼容）</span></span>
+<span class="line"><span>     - 脏数据（如订单号为空、金额为负）</span></span></code></pre></div><h4 id="_5-消费者数量与分区数的关系" tabindex="-1">5. 消费者数量与分区数的关系 <a class="header-anchor" href="#_5-消费者数量与分区数的关系" aria-label="Permalink to &quot;5. 消费者数量与分区数的关系&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>关键规则：</span></span>
+<span class="line"><span>  ① 同一分区内的消息由**同一个消费者**顺序处理</span></span>
+<span class="line"><span>  ② 同组内分区数 ≥ 消费者数，否则多出来的消费者**空转**（拿不到分区）</span></span>
+<span class="line"><span>  ③ 不同消费者组之间互不影响（短信组和统计组各自独立消费全量）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>扩容无效的三种场景：</span></span>
+<span class="line"><span>  ❌ 分区数 8，消费者扩到 12 → 有 4 个消费者空转，白扩容</span></span>
+<span class="line"><span>     解法：先扩分区数（注意：扩分区会改变 hash 映射，要评估对顺序的影响）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  ❌ 瓶颈在数据库（如题目 4 的 1000 QPS）→ 扩消费者只会加剧 DB 压力</span></span>
+<span class="line"><span>     解法：扩容前先确认瓶颈在哪（看消费端是 CPU 密集还是等 IO）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  ❌ 消息处理是严格顺序的且只有一个分区 → 永远只能单线程处理</span></span>
+<span class="line"><span>     解法：按业务键拆分更多分区（如按 order_id 拆 64 个分区 → 最多 64 并发）</span></span></code></pre></div><p>监控核心指标：<strong>lag（积压量）</strong> = 生产速率 - 消费速率的累积。lag 持续增长 = 消费能力不足，是 MQ 运维的第一指标。</p><h4 id="评分要点-共-10-分-≥7-分合格-4" tabindex="-1">评分要点（共 10 分，≥7 分合格） <a class="header-anchor" href="#评分要点-共-10-分-≥7-分合格-4" aria-label="Permalink to &quot;评分要点（共 10 分，≥7 分合格）&quot;">​</a></h4><ul><li>[ ] <strong>2 分</strong>：分区键选「订单号」，且解释了「分区内有序、分区间无序」为什么够用</li><li>[ ] <strong>3 分</strong>：幂等方案可执行（唯一键 + 已处理表 + <strong>同一事务</strong>），且指出「拆成两个事务会失效」</li><li>[ ] <strong>2 分</strong>：三种投递语义讲清楚，推荐「至少一次 + 幂等」并说明为什么不选恰好一次</li><li>[ ] <strong>2 分</strong>：DLQ 流程完整（重试梯度 → 死信 → 告警 → 人工补偿），且提到 lag 监控</li><li>[ ] <strong>1 分</strong>：消费者数与分区数的关系（分区数 ≥ 消费者数，否则空转）</li><li>[ ] 加分：指出「重复消费是必然事件，幂等是必选项」「死信堆积是重大事故早期信号」</li><li>[ ] 扣分项：用「至少一次」却不做幂等 → 直接扣 3 分</li></ul></details><hr><h2 id="题目-6-·-缓存策略与一致性-对应概念-07" tabindex="-1">题目 6 · 缓存策略与一致性（对应概念 07） <a class="header-anchor" href="#题目-6-·-缓存策略与一致性-对应概念-07" aria-label="Permalink to &quot;题目 6 · 缓存策略与一致性（对应概念 07）&quot;">​</a></h2><p><strong>难度</strong>：基础</p><p><strong>题目</strong>：用户资料接口读 QPS 5000、写 QPS 50（改昵称/头像），数据库读能力 2000 QPS。请用 Redis 设计缓存方案。</p><p><strong>要求</strong>：</p><ol><li>选择缓存策略（Cache-Aside / Read-Through / Write-Through / Write-Behind），给出理由</li><li>画出读路径与写路径，并说明<strong>更新顺序</strong>（先更新库还是先删缓存），分析两种顺序的故障后果</li><li>计算引入缓存后的数据库读压力与缓存命中率要求</li><li>说明 TTL 的作用，并给出延迟双删的适用场景</li><li>指出哪些数据<strong>不该</strong>放进缓存</li></ol><p><strong>提示</strong>：前端锚点——这就是 React Query / SWR 的「服务端状态缓存」：先展示旧数据、后台刷新、变更时让缓存失效。Cache-Aside 就是这套思路的后端版。</p><details><summary>参考答案</summary><h4 id="_1-策略选择-cache-aside-旁路缓存" tabindex="-1">1. 策略选择：Cache-Aside（旁路缓存） <a class="header-anchor" href="#_1-策略选择-cache-aside-旁路缓存" aria-label="Permalink to &quot;1. 策略选择：Cache-Aside（旁路缓存）&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>选 Cache-Aside，理由：</span></span>
+<span class="line"><span>  ① 实现最简单，应用代码完全掌控（读没命中就回源，写就删缓存）</span></span>
+<span class="line"><span>  ② 只有真正被访问的数据才会进缓存（不会缓存冷数据，内存利用率高）</span></span>
+<span class="line"><span>  ③ 写路径只需要「删缓存」而不是「更新缓存」，写放大最小</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>不选其他三个的理由：</span></span>
+<span class="line"><span>  Read-Through：回源逻辑耦合进缓存组件，灵活性差，还要改造组件</span></span>
+<span class="line"><span>  Write-Through：写 QPS 50 × 每次都写缓存 → 写放大，且很多写进去没人读</span></span>
+<span class="line"><span>  Write-Behind：异步写库，Redis 宕机会丢更新 → 用户资料丢了是生产事故</span></span></code></pre></div><h4 id="_2-读路径与写路径" tabindex="-1">2. 读路径与写路径 <a class="header-anchor" href="#_2-读路径与写路径" aria-label="Permalink to &quot;2. 读路径与写路径&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>【读路径】</span></span>
+<span class="line"><span>  1. 查 Redis（key = user:profile:{user_id}）</span></span>
+<span class="line"><span>  2. 命中 → 直接返回（约 1~2 ms）</span></span>
+<span class="line"><span>  3. 未命中 → 查数据库（约 10 ms）→ 写入 Redis（设 TTL）→ 返回</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>【写路径】</span></span>
+<span class="line"><span>  1. 更新数据库</span></span>
+<span class="line"><span>  2. 删除缓存（注意是「删」不是「更新」）</span></span>
+<span class="line"><span>  3. 下次读时自动回源写入新值</span></span></code></pre></div><p><strong>为什么写时「删缓存」而不是「更新缓存」</strong>：</p><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>① 更新缓存可能做无用功：改了昵称但用户半年不再访问 → 白写一次</span></span>
+<span class="line"><span>② 并发写场景下，两个更新请求可能以错误顺序写入缓存（A 先改库 B 后改库，</span></span>
+<span class="line"><span>   但 B 先写缓存 A 后写缓存 → 缓存里是 A 的旧值，且长期不修正）</span></span>
+<span class="line"><span>③ 删缓存更简单：下次读自然会拿到最新值</span></span></code></pre></div><h4 id="_3-两种更新顺序的故障后果" tabindex="-1">3. 两种更新顺序的故障后果 <a class="header-anchor" href="#_3-两种更新顺序的故障后果" aria-label="Permalink to &quot;3. 两种更新顺序的故障后果&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>方案 A：先删缓存，再更新数据库</span></span>
+<span class="line"><span>  时序：① 删缓存成功 ② 数据库更新失败</span></span>
+<span class="line"><span>  后果：缓存空了，数据库还是旧值</span></span>
+<span class="line"><span>        → 下次读回源，读到**旧值**并写回缓存</span></span>
+<span class="line"><span>        → 缓存里长期是旧数据，直到下一次写入（可能几小时后！）</span></span>
+<span class="line"><span>  严重度：❌ 高（长期不一致）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  更糟的并发场景：</span></span>
+<span class="line"><span>  ① 请求 A（写）删缓存</span></span>
+<span class="line"><span>  ② 请求 B（读）未命中 → 读数据库（旧值）→ 写入缓存（旧值）</span></span>
+<span class="line"><span>  ③ 请求 A 更新数据库（新值）</span></span>
+<span class="line"><span>  → 缓存是旧值，数据库是新值，长期不一致</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>方案 B：先更新数据库，再删缓存 ← ✅ 推荐</span></span>
+<span class="line"><span>  时序：① 数据库更新成功 ② 删缓存失败</span></span>
+<span class="line"><span>  后果：缓存里是旧值</span></span>
+<span class="line"><span>        → 但 TTL 到期后会重新回源，且下一次写入会再次删缓存</span></span>
+<span class="line"><span>  严重度：✅ 低（短暂不一致，有 TTL 兜底）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>方案 C：延迟双删（先删 → 更新库 → 等 1s → 再删）</span></span>
+<span class="line"><span>  适用场景：对一致性要求较高，且存在「读请求在写请求中间回源」的竞态</span></span>
+<span class="line"><span>  代价：多一次删除操作，且「等 1s」的时长是经验值，不严谨</span></span></code></pre></div><p><strong>结论</strong>：默认用「先更新库，再删缓存」；一致性要求极高时直接<strong>绕过缓存读主库</strong>（用性能换正确，本身就是一种权衡）。</p><h4 id="_4-压力与命中率计算" tabindex="-1">4. 压力与命中率计算 <a class="header-anchor" href="#_4-压力与命中率计算" aria-label="Permalink to &quot;4. 压力与命中率计算&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>已知：</span></span>
+<span class="line"><span>  读 QPS = 5000</span></span>
+<span class="line"><span>  数据库读能力 = 2000 QPS</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>要求：数据库承受的读压力 ≤ 2000 QPS（留 50% 余量更安全，按 ≤ 1000 算）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>回源 QPS = 读 QPS × (1 - 命中率)</span></span>
+<span class="line"><span>  要求：5000 × (1 - 命中率) ≤ 1000</span></span>
+<span class="line"><span>  → 1 - 命中率 ≤ 0.2</span></span>
+<span class="line"><span>  → 命中率 ≥ 80%</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>按数据库全部读能力算（不留余量）：</span></span>
+<span class="line"><span>  5000 × (1 - h) ≤ 2000 → h ≥ 60%</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>结论：命中率必须 ≥ 80%（留余量），≥ 90% 才健康</span></span>
+<span class="line"><span>      命中率从 95% 掉到 85% → 回源从 250 涨到 750 QPS，翻 3 倍</span></span>
+<span class="line"><span>      → 命中率是缓存系统的「血压」，必须监控</span></span></code></pre></div><h4 id="_5-ttl-的作用" tabindex="-1">5. TTL 的作用 <a class="header-anchor" href="#_5-ttl-的作用" aria-label="Permalink to &quot;5. TTL 的作用&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>TTL 是最后的兜底防线：</span></span>
+<span class="line"><span>  ① 应对「删缓存失败」：缓存总有到期时间，不会永远错</span></span>
+<span class="line"><span>  ② 应对「未知的更新路径」：如果有别的服务绕过应用直接改了数据库，</span></span>
+<span class="line"><span>     TTL 到期后缓存会自动纠正</span></span>
+<span class="line"><span>  ③ 防止冷数据常驻内存：长期不访问的数据自动淘汰</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>TTL 设置：</span></span>
+<span class="line"><span>  基础 1 天 + 随机 0~6 小时（防止大量 key 同时过期造成雪崩，见题目 7）</span></span>
+<span class="line"><span>  一致性要求高的场景：TTL 短一些（如 5 分钟）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>⚠️ 绝不设置「永不过期」除非是热点 key 的特殊策略（见题目 7）</span></span></code></pre></div><h4 id="_6-哪些数据不该放进缓存" tabindex="-1">6. 哪些数据不该放进缓存 <a class="header-anchor" href="#_6-哪些数据不该放进缓存" aria-label="Permalink to &quot;6. 哪些数据不该放进缓存&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>❌ 强一致数据：余额、库存、订单状态</span></span>
+<span class="line"><span>   → 缓存不一致 = 资损。这类数据要么读主库，要么用带锁/事务的方案</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>❌ 写多读少的数据：写 QPS &gt; 读 QPS</span></span>
+<span class="line"><span>   → 每次写都要删缓存，缓存几乎没有命中收益，纯属自找麻烦</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>❌ 大 value（&gt; 1 MB）：</span></span>
+<span class="line"><span>   → 单 key 过大会拖垮网络与内存，且序列化开销大</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>❌ 极少被访问的数据：</span></span>
+<span class="line"><span>   → 占用内存却不产生命中，降低整体命中率</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>✅ 适合缓存：读多写少、可容忍短暂陈旧、数据量适中的热点数据</span></span>
+<span class="line"><span>   （用户资料、商品详情、配置信息、字典表）</span></span></code></pre></div><h4 id="评分要点-共-10-分-≥7-分合格-5" tabindex="-1">评分要点（共 10 分，≥7 分合格） <a class="header-anchor" href="#评分要点-共-10-分-≥7-分合格-5" aria-label="Permalink to &quot;评分要点（共 10 分，≥7 分合格）&quot;">​</a></h4><ul><li>[ ] <strong>2 分</strong>：策略选对（Cache-Aside），且说明了为什么不选其他三种（各一条理由）</li><li>[ ] <strong>3 分</strong>：更新顺序分析完整（方案 A 长期不一致、方案 B 短暂不一致），且<strong>推荐先库后删</strong></li><li>[ ] <strong>2 分</strong>：命中率有计算过程（<code>回源 QPS = 读 QPS × (1 - 命中率)</code>），并给出健康阈值（≥ 90%）</li><li>[ ] <strong>1 分</strong>：TTL 的作用讲清楚（兜底防线 + 防雪崩的随机值）</li><li>[ ] <strong>1 分</strong>：列出不该缓存的数据（强一致 / 写多读少 / 大 value / 冷数据）</li><li>[ ] <strong>1 分</strong>：写路径是「删缓存」而非「更新缓存」，且说明了并发写乱序的风险</li><li>[ ] 扣分项：推荐「先删缓存再更新库」→ 直接扣 3 分</li><li>[ ] 扣分项：缓存没有 TTL → 扣 2 分</li></ul></details><hr><h2 id="题目-7-·-缓存三兄弟-穿透、击穿、雪崩-对应概念-07" tabindex="-1">题目 7 · 缓存三兄弟：穿透、击穿、雪崩（对应概念 07） <a class="header-anchor" href="#题目-7-·-缓存三兄弟-穿透、击穿、雪崩-对应概念-07" aria-label="Permalink to &quot;题目 7 · 缓存三兄弟：穿透、击穿、雪崩（对应概念 07）&quot;">​</a></h2><p><strong>难度</strong>：进阶</p><p><strong>题目</strong>：某商品详情接口（读 QPS 3 万，Redis 缓存）近期出了两次故障：</p><ul><li><strong>故障一</strong>：有人用随机商品 ID 狂刷（这些 ID 都不存在），数据库被打垮</li><li><strong>故障二</strong>：一个爆款商品（占 30% 流量）的缓存正好在过期瞬间，大量请求同时回源，数据库 QPS 瞬间冲到 2 万</li></ul><p>请分别诊断并给出解决方案。</p><p><strong>要求</strong>：</p><ol><li>诊断两个故障分别属于哪一类（穿透 / 击穿 / 雪崩）</li><li>针对每类给出<strong>至少两种</strong>解决方案，并说明各自的代价</li><li>补充第三种故障「雪崩」的场景、原因与解法（含 TTL 随机值的具体设置）</li><li>给出缓存监控指标表（指标 / 健康值 / 异常信号）</li><li>计算：如果 Redis 整体宕机，3 万 QPS 全部回源，数据库会怎样？该怎么兜底？</li></ol><p><strong>提示</strong>：前端锚点——这就是「缓存失效瞬间流量全部冲向数据库」的三种变体，解法统一为「错峰 + 兜底 + 挡墙」。</p><details><summary>参考答案</summary><h4 id="_1-诊断" tabindex="-1">1. 诊断 <a class="header-anchor" href="#_1-诊断" aria-label="Permalink to &quot;1. 诊断&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>故障一 = 缓存穿透</span></span>
+<span class="line"><span>  特征：查询【根本不存在】的 key → 每次都不命中 → 每次都打数据库</span></span>
+<span class="line"><span>  原因：恶意攻击（随机 ID 狂扫）或业务 bug（查已删除的数据）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>故障二 = 缓存击穿</span></span>
+<span class="line"><span>  特征：一个【热点 key 恰好在过期瞬间】被大量请求同时访问</span></span>
+<span class="line"><span>  原因：爆款商品（占 30% 流量）+ 缓存到期 → 全部同时回源</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>第三种（还没发生但必须预防）= 缓存雪崩</span></span>
+<span class="line"><span>  特征：【大批 key 同一时间集体过期】或 Redis 整体宕机</span></span>
+<span class="line"><span>  原因：批量导入数据时设了相同 TTL；或 Redis 集群故障</span></span></code></pre></div><h4 id="_2-解决方案与代价" tabindex="-1">2. 解决方案与代价 <a class="header-anchor" href="#_2-解决方案与代价" aria-label="Permalink to &quot;2. 解决方案与代价&quot;">​</a></h4><p><strong>故障一：缓存穿透</strong></p><table tabindex="0"><thead><tr><th>方案</th><th>做法</th><th>代价</th></tr></thead><tbody><tr><td>① <strong>空值缓存</strong></td><td>查询结果为「不存在」时，也缓存一个空值（<code>&quot;&quot;</code> 或特殊标记），TTL 设短（1~5 分钟）</td><td>占用少量内存；攻击者换一批随机 ID 仍会穿透（但已被大幅削弱）</td></tr><tr><td>② <strong>布隆过滤器</strong></td><td>把所有合法商品 ID 放进布隆过滤器，请求先过过滤器，不存在的直接返回</td><td>有误判率（不存在的可能判成存在，但不会反过来）；数据新增时要同步更新过滤器；实现复杂度更高</td></tr><tr><td>③ 参数校验 + 限流</td><td>ID 格式校验（如必须是数字且在合理范围）；对同一 IP 的请求限流</td><td>只能挡低级攻击</td></tr></tbody></table><p><strong>推荐：① + ② 组合</strong>（空值缓存挡大部分，布隆过滤器做兜底）。</p><p><strong>故障二：缓存击穿</strong></p><table tabindex="0"><thead><tr><th>方案</th><th>做法</th><th>代价</th></tr></thead><tbody><tr><td>① <strong>互斥锁（回源加锁）</strong></td><td>缓存未命中时，先抢分布式锁（Redis <code>SETNX</code>）；抢到的去查库并写缓存，没抢到的等待几十毫秒后重试读缓存</td><td>未抢到锁的请求要等待（增加延迟）；锁本身要处理死锁（设过期时间）</td></tr><tr><td>② <strong>热点 key 永不过期 + 异步刷新</strong></td><td>热点 key 不设 TTL（物理不过期），另起一个定时任务或消息触发异步刷新</td><td>需要识别「哪些是热点 key」；刷新失败时数据会陈旧</td></tr><tr><td>③ <strong>提前续期</strong></td><td>在 value 里存一个「逻辑过期时间」，请求发现逻辑过期就触发异步刷新，<strong>先返回旧值</strong>（类比 stale-while-revalidate）</td><td>会短暂返回旧数据（通常可接受）</td></tr></tbody></table><p><strong>推荐：① 互斥锁</strong>（实现直接、延迟可控），爆款场景叠加 ②。</p><h4 id="_3-雪崩的场景与解法" tabindex="-1">3. 雪崩的场景与解法 <a class="header-anchor" href="#_3-雪崩的场景与解法" aria-label="Permalink to &quot;3. 雪崩的场景与解法&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>场景：</span></span>
+<span class="line"><span>  ① 批量导入/预热了 100 万个商品，全部设置 TTL = 1 小时</span></span>
+<span class="line"><span>     → 1 小时后集体过期，3 万 QPS 全部回源</span></span>
+<span class="line"><span>  ② Redis 集群故障（主节点宕机、网络分区）</span></span>
+<span class="line"><span>     → 所有请求回源</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>解法（错峰 + 兜底 + 挡墙）：</span></span>
+<span class="line"><span>  ① 错峰：TTL 加随机值</span></span>
+<span class="line"><span>     错误：TTL = 3600（全部同时过期）</span></span>
+<span class="line"><span>     正确：TTL = 3600 + random(0, 1800)</span></span>
+<span class="line"><span>           → 过期时间均匀分布在 1~1.5 小时之间，不会集体到期</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  ② 兜底：多级缓存</span></span>
+<span class="line"><span>     Redis 挂了 → 本地缓存（进程内）仍能提供旧数据</span></span>
+<span class="line"><span>     → 本地缓存的 TTL 也要短（如 60 秒），避免长期不一致</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  ③ 挡墙：限流 + 熔断降级</span></span>
+<span class="line"><span>     回源请求超过阈值 → 直接返回兜底数据（如默认商品信息）或排队</span></span>
+<span class="line"><span>     → 宁可降级，也不能让数据库被打垮（数据库挂了 = 全站不可用）</span></span></code></pre></div><h4 id="_4-缓存监控指标表" tabindex="-1">4. 缓存监控指标表 <a class="header-anchor" href="#_4-缓存监控指标表" aria-label="Permalink to &quot;4. 缓存监控指标表&quot;">​</a></h4><table tabindex="0"><thead><tr><th>指标</th><th>健康值参考</th><th>异常信号与排查方向</th></tr></thead><tbody><tr><td><strong>命中率</strong></td><td>读多系统 &gt; 90%</td><td>跌破 80%：① 缓存键是否带动态参数？② TTL 是否被改短？③ 是否有批量删除？④ 是否有大促流量激增？</td></tr><tr><td><strong>大 key（&gt; 1 MB）</strong></td><td>无</td><td>单 key 过大 → 拖垮网络与内存；拆分或压缩</td></tr><tr><td><strong>慢命令（&gt; 10 ms）</strong></td><td>无</td><td>排查 O(N) 命令（<code>KEYS</code>、大集合全量操作）</td></tr><tr><td><strong>内存使用率</strong></td><td>&lt; 70%</td><td>逼近上限触发 LRU 淘汰风暴 → 命中率骤降</td></tr><tr><td><strong>过期淘汰率（evicted）</strong></td><td>平稳</td><td>突增 = 数据量大增或 TTL 设太短</td></tr><tr><td><strong>回源 QPS</strong></td><td>远小于总读 QPS</td><td>突然上涨 = 命中率下降或缓存故障</td></tr></tbody></table><blockquote><p>监控的价值是<strong>把「缓存失效」从事故变成报表</strong>：命中率每天看，而不是等数据库告警了才回头看缓存。</p></blockquote><h4 id="_5-redis-整体宕机的后果与兜底" tabindex="-1">5. Redis 整体宕机的后果与兜底 <a class="header-anchor" href="#_5-redis-整体宕机的后果与兜底" aria-label="Permalink to &quot;5. Redis 整体宕机的后果与兜底&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>计算：</span></span>
+<span class="line"><span>  读 QPS = 30,000</span></span>
+<span class="line"><span>  数据库读能力 = 2,000 QPS（题干：击穿时冲到 2 万已经打垮了）</span></span>
+<span class="line"><span>  回源倍数 = 30,000 / 2,000 = 15 倍</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>后果：</span></span>
+<span class="line"><span>  数据库瞬间承受 15 倍于容量的读压力</span></span>
+<span class="line"><span>  → 连接池打满 → 查询排队 → RT 从 10ms 涨到秒级</span></span>
+<span class="line"><span>  → 应用线程池被拖满 → 不只是商品详情，所有接口都不可用</span></span>
+<span class="line"><span>  → 数据库可能直接崩溃，恢复需要分钟级甚至更长</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>兜底方案（按顺序执行）：</span></span>
+<span class="line"><span>  ① 本地缓存兜底（毫秒级生效）</span></span>
+<span class="line"><span>     每个实例保留一份最近 60 秒的热点数据</span></span>
+<span class="line"><span>     → Redis 挂了仍能挡住大部分流量（命中率可能只有 60%，但足以保护数据库）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  ② 熔断 + 限流（秒级生效）</span></span>
+<span class="line"><span>     回源请求超过 2000 QPS 就熔断，直接返回兜底数据或友好提示</span></span>
+<span class="line"><span>     → 宁可部分功能降级，也不能让数据库崩溃</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  ③ Redis 高可用（根本方案）</span></span>
+<span class="line"><span>     主从 + 哨兵：主节点宕机自动切从（秒级）</span></span>
+<span class="line"><span>     Redis Cluster：数据量超单机时才需要</span></span>
+<span class="line"><span>     → 让「Redis 整体宕机」变成小概率事件</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  ④ 熔断恢复要「慢启动」</span></span>
+<span class="line"><span>     Redis 恢复后不要立刻放全量流量进去（空缓存会导致再次击穿）</span></span>
+<span class="line"><span>     → 逐步放量（如 10% → 50% → 100%），或提前预热热点 key</span></span></code></pre></div><h4 id="评分要点-共-10-分-≥7-分合格-6" tabindex="-1">评分要点（共 10 分，≥7 分合格） <a class="header-anchor" href="#评分要点-共-10-分-≥7-分合格-6" aria-label="Permalink to &quot;评分要点（共 10 分，≥7 分合格）&quot;">​</a></h4><ul><li>[ ] <strong>2 分</strong>：三类故障诊断正确（不存在 = 穿透、热点过期 = 击穿、批量过期/宕机 = 雪崩）</li><li>[ ] <strong>3 分</strong>：每类给出 ≥ 2 种方案，且<strong>说明代价</strong>（只列方案名不给代价扣 1 分/类）</li><li>[ ] <strong>2 分</strong>：雪崩解法覆盖「错峰（随机 TTL）+ 兜底（多级缓存）+ 挡墙（限流熔断）」，随机 TTL 有具体设置</li><li>[ ] <strong>1 分</strong>：监控指标表 ≥ 4 项，含命中率、大 key、慢命令、内存</li><li>[ ] <strong>2 分</strong>：Redis 宕机有量化计算（15 倍压力）+ 分级兜底（本地缓存 → 熔断 → Redis 高可用 → 慢启动预热）</li><li>[ ] 加分：提到「熔断恢复要慢启动，避免空缓存再次击穿」</li><li>[ ] 扣分项：把「穿透」和「击穿」混淆 → 扣 2 分</li></ul></details><hr><h2 id="题目-8-·-分片键选择与全局-id-对应概念-08" tabindex="-1">题目 8 · 分片键选择与全局 ID（对应概念 08） <a class="header-anchor" href="#题目-8-·-分片键选择与全局-id-对应概念-08" aria-label="Permalink to &quot;题目 8 · 分片键选择与全局 ID（对应概念 08）&quot;">​</a></h2><p><strong>难度</strong>：进阶</p><p><strong>题目</strong>：用户表达到 2 亿行（单表已经 500 GB），查询慢、写入也慢。需要分片。业务查询有：① 按 <code>user_id</code> 查「我的订单」；② 按 <code>order_id</code> 查「订单详情」；③ 客服后台按手机号查用户；④ 财务按城市统计 GMV。</p><p><strong>要求</strong>：</p><ol><li>先判断：<strong>该不该分片</strong>？给出在分片之前应该先做的事（至少 3 项）</li><li>如果确实要分片，选分片键并<strong>论证</strong>（要分析每个查询会落在单片还是广播）</li><li>分片后的全局 ID 方案：对比自增 ID / UUID / 雪花算法，给出选择与理由</li><li>解决「按手机号查用户」和「按城市统计 GMV」的跨分片需求</li><li>给出扩容预案，并说明为什么「先垂直后水平」</li></ol><p><strong>提示</strong>：前端锚点——分片 ≈ 代码分割：单文件太大就拆 chunk，但拆完之后「跨 chunk 通信」变得困难，所以<strong>拆出去的复杂度是十倍的</strong>。</p><details><summary>参考答案</summary><h4 id="_1-先别急着分片-分片是最后手段" tabindex="-1">1. 先别急着分片：分片是最后手段 <a class="header-anchor" href="#_1-先别急着分片-分片是最后手段" aria-label="Permalink to &quot;1. 先别急着分片：分片是最后手段&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>在分片之前，按顺序把这些做完（很多系统做完就够了）：</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>① 索引优化：慢查询是否走了索引？EXPLAIN 看是否有全表扫描</span></span>
+<span class="line"><span>   → 2 亿行的表，加对索引可能就能救回来</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>② 读写分离 + 缓存：读多写少的话，主从 + Redis 能卸掉 90% 的读压力</span></span>
+<span class="line"><span>   → 分片主要解决「写」和「单机容量」，读压力优先用缓存</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>③ 垂直拆分（按业务拆库）：用户库 / 订单库 / 商品库 各自独立</span></span>
+<span class="line"><span>   → 简单（只是换库）、收益立竿见影（热库分离、独立扩容）</span></span>
+<span class="line"><span>   → 很多系统「垂直拆完 + 归档冷数据」就够了，根本走不到水平分片</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>④ 归档冷数据：2 亿行里可能 1.5 亿是 1 年前的冷数据</span></span>
+<span class="line"><span>   → 把冷数据搬到归档库，主表立刻瘦身到 5000 万行</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>只有以上都做了还扛不住（单机写 QPS &gt; 5000、单表 &gt; 1 亿行且还在涨），才考虑分片。</span></span>
+<span class="line"><span>因为分片一旦落地：join 要应用层做、事务要分布式事务、聚合要汇总——SQL 能力全面降级。</span></span></code></pre></div><h4 id="_2-分片键选择-按-user-id-哈希分片" tabindex="-1">2. 分片键选择：按 <code>user_id</code> 哈希分片 <a class="header-anchor" href="#_2-分片键选择-按-user-id-哈希分片" aria-label="Permalink to &quot;2. 分片键选择：按 \`user_id\` 哈希分片&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>候选一：按 order_id 分片</span></span>
+<span class="line"><span>  ① 按 user_id 查「我的订单」→ 不知道订单在哪个片 → **广播 8 个片**（打全库）</span></span>
+<span class="line"><span>  ② 按 order_id 查详情 → 单片 ✅</span></span>
+<span class="line"><span>  → 高频查询（我的订单）变成广播，性能反而不如不分片 ❌</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>候选二：按 user_id 分片 ← ✅ 选这个</span></span>
+<span class="line"><span>  ① 按 user_id 查「我的订单」→ 单片查询 ✅（占读流量的 80%）</span></span>
+<span class="line"><span>  ② 下单（写）→ 按 user_id 均匀散开 ✅</span></span>
+<span class="line"><span>  ③ 按 order_id 查详情 → 广播 ❌（但可以用「ID 里编码分片位」解决，见下）</span></span>
+<span class="line"><span>  → 高频查询都是单片，低频查询可接受广播</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>三特性检验：</span></span>
+<span class="line"><span>  高基数 ✅：user_id 取值上亿，散得开</span></span>
+<span class="line"><span>  均匀分布 ✅：哈希后各片数据量接近（不像按 city 分，北京占 40%）</span></span>
+<span class="line"><span>  访问亲和 ✅：最频繁的「我的订单」天然带 user_id</span></span></code></pre></div><p><strong>按 order_id 查详情的优化</strong>（避免广播）：</p><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>方案：把分片位编码进 order_id</span></span>
+<span class="line"><span>  雪花算法的 10 位机器 ID 里，用 3 位表示分片号（最多 8 片）</span></span>
+<span class="line"><span>  → 拿到 order_id 就能解析出分片号 → 单片查询 ✅</span></span>
+<span class="line"><span>  代价：分片数变更时（8 → 16）这个编码会失效，需要兼容处理（双读或灰度迁移）</span></span></code></pre></div><h4 id="_3-全局-id-方案对比" tabindex="-1">3. 全局 ID 方案对比 <a class="header-anchor" href="#_3-全局-id-方案对比" aria-label="Permalink to &quot;3. 全局 ID 方案对比&quot;">​</a></h4><table tabindex="0"><thead><tr><th>方案</th><th>全局唯一</th><th>趋势递增</th><th>无中心</th><th>评价</th></tr></thead><tbody><tr><td>数据库自增 ID</td><td>❌ 各片自增会撞车</td><td>✅</td><td>❌</td><td>分片后<strong>直接失效</strong></td></tr><tr><td>UUID</td><td>✅</td><td>❌ 完全无序</td><td>✅</td><td>作为主键随机写 → B+ 树页分裂频繁 → <strong>插入性能骤降</strong> ❌</td></tr><tr><td><strong>雪花算法</strong></td><td>✅</td><td>✅</td><td>✅</td><td><strong>推荐</strong>：三项全中</td></tr><tr><td>发号器服务（DB/Redis 取号段）</td><td>✅</td><td>✅</td><td>❌</td><td>有序但引入中心组件，多一个故障点</td></tr></tbody></table><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>雪花算法结构（64 位 long）：</span></span>
+<span class="line"><span>┌────────┬──────────────┬──────────┬──────────┐</span></span>
+<span class="line"><span>│ 1 bit  │ 41 bit       │ 10 bit   │ 12 bit   │</span></span>
+<span class="line"><span>│ 符号位 │ 毫秒时间戳    │ 机器 ID  │ 序列号   │</span></span>
+<span class="line"><span>│ (0)    │ (可用 69 年)  │ (1024 台)│ (每毫秒 4096 个) │</span></span>
+<span class="line"><span>└────────┴──────────────┴──────────┴──────────┘</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>为什么「趋势递增」重要：</span></span>
+<span class="line"><span>  B+ 树索引按主键顺序组织，递增 ID 是「追加写」（顺序 IO），</span></span>
+<span class="line"><span>  UUID 是「随机写」（随机 IO + 页分裂），插入性能差一个量级。</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>唯一风险：时钟回拨（服务器时间倒退会生成重复 ID）</span></span>
+<span class="line"><span>  工程处理：回拨时间短就等待，回拨时间长就报警 + 切换备用机器 ID</span></span></code></pre></div><h4 id="_4-跨分片需求怎么解决" tabindex="-1">4. 跨分片需求怎么解决 <a class="header-anchor" href="#_4-跨分片需求怎么解决" aria-label="Permalink to &quot;4. 跨分片需求怎么解决&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>需求③：客服按手机号查用户</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  方案：二级索引（ES）或映射表</span></span>
+<span class="line"><span>    ① 在 ES 里维护「手机号 → user_id」的索引（由 MySQL 的变更事件同步）</span></span>
+<span class="line"><span>    ② 查询时先查 ES 拿到 user_id，再按分片键单片查询 MySQL</span></span>
+<span class="line"><span>    → 两次查询，但都不是广播</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  为什么不广播：每广播一次 = 打全库一次，客服后台并发虽低，</span></span>
+<span class="line"><span>                但如果做成高频接口就是性能债</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>需求④：财务按城市统计 GMV</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  方案：汇总表 / 列式仓库</span></span>
+<span class="line"><span>    ① 定时任务（每小时/每天）把各片的订单聚合到一张汇总表（宽表）</span></span>
+<span class="line"><span>    ② 或同步到 ClickHouse，报表直接查列式库</span></span>
+<span class="line"><span>    → 统计类需求本来就该用 OLAP 方案，行存跑聚合慢一个量级</span></span>
+<span class="line"><span>    → 这也是「OLTP 与 OLAP 分离」原则的体现（见 L1 题目 8）</span></span></code></pre></div><h4 id="_5-扩容预案与「先垂直后水平」" tabindex="-1">5. 扩容预案与「先垂直后水平」 <a class="header-anchor" href="#_5-扩容预案与「先垂直后水平」" aria-label="Permalink to &quot;5. 扩容预案与「先垂直后水平」&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>为什么先垂直后水平：</span></span>
+<span class="line"><span>  垂直拆分（按业务拆库）：只是换库，不动路由、不动分片键，</span></span>
+<span class="line"><span>                        复杂度低一个量级，收益立竿见影</span></span>
+<span class="line"><span>  水平拆分（分片）：要定分片键、改路由层、处理跨片查询与事务，</span></span>
+<span class="line"><span>                   是「最昂贵的架构变更」，且几乎不可逆（换分片键 = 数据全量迁移）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>扩容预案（设计阶段就要想好，而不是扩容时才考虑）：</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  方案 A：2 倍预分配</span></span>
+<span class="line"><span>    一开始就分 16 片，但只部署 8 台机器（每台放 2 片）</span></span>
+<span class="line"><span>    扩容到 16 台时，只需把片迁到新机器，**哈希规则不变**（仍是 % 16）</span></span>
+<span class="line"><span>    → 代价：初期管理 16 片的逻辑（但都在 8 台机器上）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  方案 B：一致性哈希</span></span>
+<span class="line"><span>    扩容时只迁移 1/N 的数据（如 8 → 16 片，只迁 1/16）</span></span>
+<span class="line"><span>    → 代价：实现复杂度高，且数据分布可能不均（要用虚拟节点）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  推荐：中小规模用方案 A（简单可控），超大规模再上一致性哈希</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  扩容执行步骤（无论哪种方案）：</span></span>
+<span class="line"><span>    ① 双写（新旧两套路由同时写）</span></span>
+<span class="line"><span>    ② 存量数据迁移（按片批量，可暂停可回滚）</span></span>
+<span class="line"><span>    ③ 数据校验（行数 + 金额/关键字段合计）</span></span>
+<span class="line"><span>    ④ 灰度切读（1% → 10% → 100% 流量）</span></span>
+<span class="line"><span>    ⑤ 观察 7 天后下线旧路由与双写</span></span></code></pre></div><h4 id="评分要点-共-10-分-≥7-分合格-7" tabindex="-1">评分要点（共 10 分，≥7 分合格） <a class="header-anchor" href="#评分要点-共-10-分-≥7-分合格-7" aria-label="Permalink to &quot;评分要点（共 10 分，≥7 分合格）&quot;">​</a></h4><ul><li>[ ] <strong>2 分</strong>：先论证「该不该分片」，列出 ≥ 3 项分片前应该先做的事（索引/缓存/垂直拆分/归档）</li><li>[ ] <strong>3 分</strong>：分片键选 <code>user_id</code>，且<strong>逐条分析每个查询是单片还是广播</strong>（只给结论不分析扣 2 分）</li><li>[ ] <strong>2 分</strong>：全局 ID 对比了自增/UUID/雪花，选出雪花并说明「趋势递增对 B+ 树的重要性」</li><li>[ ] <strong>2 分</strong>：跨分片需求给出 ES 二级索引 + 汇总表/ClickHouse 两个方案</li><li>[ ] <strong>1 分</strong>：扩容预案（2 倍预分配 或 一致性哈希）+ 迁移步骤（双写 → 校验 → 灰度）</li><li>[ ] 加分：提到「把分片位编码进 order_id 避免广播查询」</li><li>[ ] 扣分项：选 <code>order_id</code> 做分片键 → 直接扣 3 分（高频查询变广播）</li><li>[ ] 扣分项：用 UUID 做主键 → 扣 2 分</li></ul></details><hr><h2 id="题目-9-·-cdn-与静态资源缓存-对应概念-09" tabindex="-1">题目 9 · CDN 与静态资源缓存（对应概念 09） <a class="header-anchor" href="#题目-9-·-cdn-与静态资源缓存-对应概念-09" aria-label="Permalink to &quot;题目 9 · CDN 与静态资源缓存（对应概念 09）&quot;">​</a></h2><p><strong>难度</strong>：基础</p><p><strong>题目</strong>：一个新闻网站，日活 500 万，每人每天浏览 20 篇文章，每篇文章平均 3 张图片（每张 300 KB），JS/CSS 资源合计 800 KB（首次加载）。请设计 CDN 缓存方案。</p><p><strong>要求</strong>：</p><ol><li>计算日流量与带宽需求，论证「为什么必须用 CDN」</li><li>给出不同资源的 <code>Cache-Control</code> 配置（index.html / hash 资源 / 图片 / 用户私有数据）</li><li>解释「hash 文件名 + 长 TTL」为什么优于「固定文件名 + 短 TTL」</li><li>说明缓存键的组成，并指出「URL 带动态参数」会导致什么后果</li><li>给出发布流程（构建 → 上传 → 更新入口 → 预热 → 回滚）</li></ol><p><strong>提示</strong>：前端锚点——<strong>这是前端最熟悉的一节</strong>：<code>npm run build</code> 产出的 <code>app-8f3d2a.js</code> 就是为了配合 CDN 缓存。现在从后端视角重新理解它。</p><details><summary>参考答案</summary><h4 id="_1-流量与带宽计算" tabindex="-1">1. 流量与带宽计算 <a class="header-anchor" href="#_1-流量与带宽计算" aria-label="Permalink to &quot;1. 流量与带宽计算&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>已知：</span></span>
+<span class="line"><span>  DAU = 500 万，人均浏览 20 篇/天，每篇 3 张图 × 300 KB</span></span>
+<span class="line"><span>  JS/CSS 合计 800 KB（首次加载，之后被浏览器缓存）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>① 图片流量：</span></span>
+<span class="line"><span>  日图片请求 = 500 万 × 20 × 3 = 3 亿次/天</span></span>
+<span class="line"><span>  日图片流量 = 3 亿 × 300 KB = 900 亿 KB ≈ 858 TB/天</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  日均带宽 = 858 TB × 8 bit / 86400 秒</span></span>
+<span class="line"><span>          = 858 × 1024 GB × 8 / 86400 ≈ 81.6 Gbps</span></span>
+<span class="line"><span>  峰值（×3）= 约 245 Gbps</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>② 静态资源流量（JS/CSS）：</span></span>
+<span class="line"><span>  假设 DAU 中 20% 是当天新访客（缓存失效）：</span></span>
+<span class="line"><span>  日资源请求 = 500 万 × 20% = 100 万次</span></span>
+<span class="line"><span>  日资源流量 = 100 万 × 800 KB ≈ 0.76 TB/天 → 带宽约 0.07 Gbps（可忽略）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>③ 结论：图片占了 99.9% 的带宽</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>④ 为什么必须用 CDN：</span></span>
+<span class="line"><span>  源站带宽需求 = 245 Gbps（峰值）</span></span>
+<span class="line"><span>  单机千兆网卡 = 1 Gbps → 需要 245 台机器**只用来扛图片**</span></span>
+<span class="line"><span>  且这些机器 99% 的时间在重复传输同一批热点图片（严重浪费）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  上 CDN 后（命中率 95%）：</span></span>
+<span class="line"><span>    回源带宽 = 245 × 5% ≈ 12 Gbps（源站只需 12~15 台机器）</span></span>
+<span class="line"><span>    边缘带宽 = 245 × 95% ≈ 233 Gbps（由 CDN 厂商的分布式节点承担）</span></span>
+<span class="line"><span>  → 成本下降一个量级，且用户延迟从「跨省回源 100ms+」降到「就近命中 20ms 内」</span></span></code></pre></div><h4 id="_2-cache-control-配置" tabindex="-1">2. Cache-Control 配置 <a class="header-anchor" href="#_2-cache-control-配置" aria-label="Permalink to &quot;2. Cache-Control 配置&quot;">​</a></h4><table tabindex="0"><thead><tr><th>资源</th><th>配置</th><th>理由</th></tr></thead><tbody><tr><td><code>index.html</code>（入口）</td><td><code>Cache-Control: no-cache</code></td><td>每次回源校验（ETag/Last-Modified），保证用户拿到最新入口；<strong>绝不能长缓存</strong>，否则发版后用户永远访问旧页面</td></tr><tr><td><code>app-8f3d2a.js</code> / <code>*.css</code>（hash 文件名）</td><td><code>Cache-Control: public, max-age=31536000, immutable</code></td><td>内容变则 hash 变 → 新 URL 新缓存；内容不变则永久命中</td></tr><tr><td>图片（内容不变）</td><td><code>Cache-Control: public, max-age=2592000</code>（30 天）</td><td>图片文件名通常不带 hash，用较长但有限的 TTL；配合版本号或目录区分（<code> /v2/xxx.jpg</code>）</td></tr><tr><td>用户私有数据（个人信息、订单详情）</td><td><code>Cache-Control: private, no-store</code></td><td><strong>绝不进 CDN</strong>。设成 public 会导致「用户 A 看到用户 B 的数据」——严重安全事故</td></tr><tr><td>实时数据（库存、余额）</td><td><code>Cache-Control: no-store</code></td><td>实时性数据被缓存会导致超卖</td></tr></tbody></table><h4 id="_3-hash-文件名-长-ttl-vs-固定文件名-短-ttl" tabindex="-1">3. hash 文件名 + 长 TTL vs 固定文件名 + 短 TTL <a class="header-anchor" href="#_3-hash-文件名-长-ttl-vs-固定文件名-短-ttl" aria-label="Permalink to &quot;3. hash 文件名 + 长 TTL vs 固定文件名 + 短 TTL&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>方案 A：固定文件名 + 短 TTL（app.js + max-age=300）</span></span>
+<span class="line"><span>  问题：</span></span>
+<span class="line"><span>    ① 命中率低：5 分钟就过期，回头用户多时命中率可能只有 50%</span></span>
+<span class="line"><span>    ② 一致性差：TTL 内发了新版，用户仍拿旧的；TTL 刚过又集体回源</span></span>
+<span class="line"><span>    ③ 发版要靠 purge：每次发版都要全网清除 CDN 缓存，</span></span>
+<span class="line"><span>       而 purge 是重操作（有延迟、有失败率），天天 purge 说明策略设计错了</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>方案 B：hash 文件名 + 长 TTL（app-8f3d2a.js + max-age=1 年）← ✅</span></span>
+<span class="line"><span>  原理：</span></span>
+<span class="line"><span>    构建时根据文件内容生成 hash（contenthash）</span></span>
+<span class="line"><span>    内容变 → hash 变 → 全新 URL → CDN/浏览器视为新资源，必然回源一次</span></span>
+<span class="line"><span>    内容不变 → hash 不变 → 永久命中缓存，零回源</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  优势：</span></span>
+<span class="line"><span>    ① 「缓存失效」从「按时间猜」变成「按内容确定」</span></span>
+<span class="line"><span>    ② 命中率接近 100%（内容不变永远命中）</span></span>
+<span class="line"><span>    ③ 发版不需要 purge：新版本是新的 URL，老版本自然过期</span></span>
+<span class="line"><span>    ④ 回滚简单：把 index.html 指回旧 hash 即可，旧资源还在</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  这是前端构建产物 + CDN 的**最佳实践**，任何静态资源分发都该抄这个模式</span></span></code></pre></div><h4 id="_4-缓存键与动态参数的坑" tabindex="-1">4. 缓存键与动态参数的坑 <a class="header-anchor" href="#_4-缓存键与动态参数的坑" aria-label="Permalink to &quot;4. 缓存键与动态参数的坑&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>缓存键（Cache Key）默认 = 完整 URL（含查询参数）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>后果演示：</span></span>
+<span class="line"><span>  请求 1：GET /api/news?t=1725000000</span></span>
+<span class="line"><span>  请求 2：GET /api/news?t=1725000001</span></span>
+<span class="line"><span>  → 两个不同的缓存键 → 两次回源 → 命中率归零，CDN 形同虚设</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  再比如：URL 里带用户 ID、时间戳、随机数、追踪参数（utm_source 等）</span></span>
+<span class="line"><span>  → 每个请求一个缓存键 → 缓存空间爆炸 + 命中率归零</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>解法：</span></span>
+<span class="line"><span>  ① 动态参数挪到 Header / Cookie（不进 URL）</span></span>
+<span class="line"><span>  ② 或明确配置 CDN「忽略指定查询参数」（如忽略 utm_* 、t）</span></span>
+<span class="line"><span>  ③ 或把动态参数放在 hash 之后（\`#\` 后的部分不会发给服务器）</span></span></code></pre></div><h4 id="_5-发布流程" tabindex="-1">5. 发布流程 <a class="header-anchor" href="#_5-发布流程" aria-label="Permalink to &quot;5. 发布流程&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>① 构建</span></span>
+<span class="line"><span>   npm run build → 产出 app-8f3d2a.js 等带 hash 的文件</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>② 上传（**先传资源，再传入口**）</span></span>
+<span class="line"><span>   把新 hash 的资源上传到对象存储 / CDN 源站</span></span>
+<span class="line"><span>   ⚠️ 顺序很重要：如果用户先拿到新 index.html，而新资源还没上传，</span></span>
+<span class="line"><span>      会 404 → 白屏</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>③ 更新入口</span></span>
+<span class="line"><span>   上传新的 index.html（指向新 hash 的资源）</span></span>
+<span class="line"><span>   index.html 配置为 no-cache → 用户下次访问立即拿到新入口</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>④ 预热（可选，针对大促/大版本）</span></span>
+<span class="line"><span>   主动请求一次关键资源，让各边缘节点提前缓存</span></span>
+<span class="line"><span>   → 避免「突发流量首次访问全部未命中」打爆源站</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>⑤ 灰度与回滚</span></span>
+<span class="line"><span>   灰度：按 IP/地域/Cookie 分流，1% → 10% → 100% 观察</span></span>
+<span class="line"><span>   回滚：把 index.html 改回指向旧 hash 的资源（旧资源还在 CDN 上，未过期）</span></span>
+<span class="line"><span>          → 回滚只需替换一个入口文件，秒级生效</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>⑥ 事故兜底</span></span>
+<span class="line"><span>   如果真的缓存了错误内容：CDN 管理台 purge（全网清除）</span></span>
+<span class="line"><span>   → 但记住：purge 是最后手段，不是日常手段</span></span></code></pre></div><h4 id="评分要点-共-10-分-≥7-分合格-8" tabindex="-1">评分要点（共 10 分，≥7 分合格） <a class="header-anchor" href="#评分要点-共-10-分-≥7-分合格-8" aria-label="Permalink to &quot;评分要点（共 10 分，≥7 分合格）&quot;">​</a></h4><ul><li>[ ] <strong>2 分</strong>：流量/带宽有完整计算（图片 858 TB/天、峰值 245 Gbps），且算了 CDN 命中后的回源带宽</li><li>[ ] <strong>2 分</strong>：Cache-Control 配置覆盖 4 类资源（入口 no-cache / hash 资源 immutable / 图片长 TTL / 私有数据 no-store）</li><li>[ ] <strong>3 分</strong>：论证 hash 文件名优于固定文件名（内容变则 URL 变、命中率、免 purge、易回滚），且指出「天天 purge 说明策略错了」</li><li>[ ] <strong>1 分</strong>：缓存键的动态参数坑（URL 带时间戳 → 命中率归零），给出解法</li><li>[ ] <strong>2 分</strong>：发布流程完整，且指出「先传资源再传入口」的顺序</li><li>[ ] 加分：提到预热、灰度、回滚三步</li><li>[ ] 扣分项：index.html 也设置长缓存 → 直接扣 3 分（发版后用户永远访问旧页面）</li><li>[ ] 扣分项：把私有数据设成 public → 扣 2 分（安全事故）</li></ul></details><hr><h2 id="题目-10-·-综合-商品详情页-大促-对应概念-05-09" tabindex="-1">题目 10 · 综合：商品详情页 + 大促（对应概念 05-09） <a class="header-anchor" href="#题目-10-·-综合-商品详情页-大促-对应概念-05-09" aria-label="Permalink to &quot;题目 10 · 综合：商品详情页 + 大促（对应概念 05-09）&quot;">​</a></h2><p><strong>难度</strong>：综合</p><p><strong>题目</strong>：设计一个电商「商品详情页」系统，覆盖大促场景。</p><p><strong>已知</strong>：</p><ul><li>日活 2000 万，大促峰值商品详情读 QPS 50 万，平时 5 万</li><li>商品总量 1 亿 SKU，每个 SKU 详情数据约 5 KB</li><li>爆款 TOP 1000 商品占 60% 流量</li><li>商品信息（标题、价格、库存）会变更：价格一天改几次，库存每次下单都要扣</li><li>商品详情页有 20 张图片，平均每张 200 KB</li></ul><p><strong>要求</strong>：</p><ol><li><strong>容量估算</strong>：存储、带宽（含图片）、机器数</li><li><strong>高层架构</strong>：画出从用户到存储的完整链路，标注每个组件的作用</li><li><strong>缓存设计</strong>：三级缓存（本地 / Redis / DB）+ 热点 key 防击穿 + 大促防雪崩</li><li><strong>库存扣减</strong>：库存是强一致数据，怎么设计才不超卖？（说明为什么不能只靠缓存）</li><li><strong>大促预案</strong>：流量从 5 万涨到 50 万，需要提前做什么？</li></ol><p><strong>提示</strong>：前端锚点——这就是「商品详情页的性能优化」：首屏数据、图片懒加载、CDN 加速、限流降级，前后端在这里合流。</p><details><summary>参考答案</summary><h4 id="_1-容量估算" tabindex="-1">1. 容量估算 <a class="header-anchor" href="#_1-容量估算" aria-label="Permalink to &quot;1. 容量估算&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>① 存储：</span></span>
+<span class="line"><span>  商品数据 = 1 亿 SKU × 5 KB = 500 GB</span></span>
+<span class="line"><span>  → 分库分表（单表 500 GB 太大），按 seller_id 或 sku_id 哈希分 16 库</span></span>
+<span class="line"><span>  → 每库约 31 GB，健康</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>② 带宽（图片是大头）：</span></span>
+<span class="line"><span>  大促峰值详情页 PV：50 万 QPS</span></span>
+<span class="line"><span>  每页 20 张图 × 200 KB = 4 MB（假设用户滚动到底会加载大部分，按 50% 算 = 2 MB）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  图片带宽 = 50 万 × 2 MB × 8 bit = 8,000 Gbps = 8 Tbps</span></span>
+<span class="line"><span>  → 这个数字**极其恐怖**，单机/单机房完全不可能扛</span></span>
+<span class="line"><span>  → 必须靠 CDN：命中率 98%（爆款图片高度重复）</span></span>
+<span class="line"><span>     回源带宽 = 8 Tbps × 2% = 160 Gbps（仍需多台机器 + 对象存储）</span></span>
+<span class="line"><span>     边缘带宽 = 7.84 Tbps（由 CDN 厂商承担）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  接口带宽（商品数据 5 KB）：</span></span>
+<span class="line"><span>    50 万 × 5 KB × 8 = 20 Gbps → 但 95% 被 Redis 挡住，</span></span>
+<span class="line"><span>    回源部分的带宽可忽略</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>③ 机器数：</span></span>
+<span class="line"><span>  应用服务（4 核 8G，缓存命中时单机 3000 QPS）：</span></span>
+<span class="line"><span>    ceil(50 万 / 3000) = 167 台 + 10% 冗余 ≈ 184 台</span></span>
+<span class="line"><span>  Redis（单实例 5~10 万 QPS，按 5 万算）：</span></span>
+<span class="line"><span>    ceil(50 万 / 5 万) = 10 个实例 + 主从副本 ×2 = 20 台</span></span>
+<span class="line"><span>  数据库（读压力已被缓存挡掉，只处理写 + 少量回源）：</span></span>
+<span class="line"><span>    回源 = 50 万 × 5% = 2.5 万 QPS → 主从 16 分片足够</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  → 总成本大头是应用服务器（180+ 台），这正是大促要提前扩容的部分</span></span></code></pre></div><h4 id="_2-高层架构" tabindex="-1">2. 高层架构 <a class="header-anchor" href="#_2-高层架构" aria-label="Permalink to &quot;2. 高层架构&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>用户</span></span>
+<span class="line"><span>  │</span></span>
+<span class="line"><span>  ├─► 静态资源/图片 ──► CDN 边缘节点（命中 98%）──► 对象存储（回源）</span></span>
+<span class="line"><span>  │</span></span>
+<span class="line"><span>  └─► 商品详情接口</span></span>
+<span class="line"><span>        │</span></span>
+<span class="line"><span>        ▼</span></span>
+<span class="line"><span>   ┌─────────┐</span></span>
+<span class="line"><span>   │  WAF/清洗│  DDoS 防护</span></span>
+<span class="line"><span>   └────┬────┘</span></span>
+<span class="line"><span>        ▼</span></span>
+<span class="line"><span>   ┌─────────┐</span></span>
+<span class="line"><span>   │ L4 负载均衡 │  VIP 主备（keepalived）</span></span>
+<span class="line"><span>   └────┬────┘</span></span>
+<span class="line"><span>        ▼</span></span>
+<span class="line"><span>   ┌─────────┐</span></span>
+<span class="line"><span>   │ L7 Nginx │  按路径路由 /api /static</span></span>
+<span class="line"><span>   └────┬────┘</span></span>
+<span class="line"><span>        ▼</span></span>
+<span class="line"><span>   ┌──────────────┐</span></span>
+<span class="line"><span>   │  商品详情服务   │  184 台，无状态</span></span>
+<span class="line"><span>   └───┬──────┬───┘</span></span>
+<span class="line"><span>       │      │</span></span>
+<span class="line"><span>       ▼      ▼</span></span>
+<span class="line"><span>  ┌────────┐ ┌────────────┐</span></span>
+<span class="line"><span>  │本地缓存 │ │ Redis 集群  │  热点商品（TOP 1000 常驻）</span></span>
+<span class="line"><span>  │(60s TTL)│ │ 10 主 10 从 │</span></span>
+<span class="line"><span>  └────────┘ └─────┬──────┘</span></span>
+<span class="line"><span>                   ▼</span></span>
+<span class="line"><span>            ┌─────────────┐</span></span>
+<span class="line"><span>            │ MySQL 16 分片 │  商品主数据（真相源）</span></span>
+<span class="line"><span>            └──────┬──────┘</span></span>
+<span class="line"><span>                   │ binlog / 事件</span></span>
+<span class="line"><span>                   ▼</span></span>
+<span class="line"><span>            ┌─────────────┐</span></span>
+<span class="line"><span>            │  Elasticsearch│  商品搜索（副本）</span></span>
+<span class="line"><span>            └─────────────┘</span></span></code></pre></div><h4 id="_3-三级缓存设计" tabindex="-1">3. 三级缓存设计 <a class="header-anchor" href="#_3-三级缓存设计" aria-label="Permalink to &quot;3. 三级缓存设计&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>请求 → 本地缓存（命中 0.1 ms，未命中 ↓）</span></span>
+<span class="line"><span>     → Redis（命中 1~2 ms，未命中 ↓）</span></span>
+<span class="line"><span>     → MySQL（10 ms）→ 写回两级缓存</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>① 本地缓存（进程内，60 秒 TTL）</span></span>
+<span class="line"><span>   放什么：TOP 1000 爆款商品（占 60% 流量）</span></span>
+<span class="line"><span>   为什么：爆款高度集中，本地缓存能挡掉 60% 的请求，</span></span>
+<span class="line"><span>           且**零网络开销**，是抗大促的第一道防线</span></span>
+<span class="line"><span>   代价：更新不及时（60 秒内可能是旧价格）</span></span>
+<span class="line"><span>         → 缓解：价格变更时通过消息广播通知各实例失效</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>② Redis 集中缓存（TTL 1 天 + 随机 6 小时）</span></span>
+<span class="line"><span>   放什么：全量热点商品（不只是 TOP 1000）</span></span>
+<span class="line"><span>   更新策略：Cache-Aside，改价格时「先更新库，再删缓存」</span></span>
+<span class="line"><span>   高可用：Redis Cluster 分片（数据量 + 吞吐都需要），每主带一从</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>③ 数据库（MySQL 16 分片）</span></span>
+<span class="line"><span>   真相源，只处理回源与写</span></span></code></pre></div><p><strong>热点 key 防击穿</strong>（爆款商品的缓存过期瞬间）：</p><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>问题：爆款商品（占单品 QPS 可能 5 万）缓存过期 → 5 万请求同时回源 → 打垮 DB</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>方案：**热点 key 永不过期 + 异步刷新**</span></span>
+<span class="line"><span>  ① 识别热点：实时监控 key 访问频次，TOP N 自动标记为热点</span></span>
+<span class="line"><span>  ② 热点 key 不设 TTL（物理不过期），value 里存「逻辑过期时间」</span></span>
+<span class="line"><span>  ③ 请求发现逻辑过期 → 先返回旧值 + 触发异步刷新（加分布式锁，只有一个线程回源）</span></span>
+<span class="line"><span>  → 用户永远拿到数据（可能旧几秒），数据库永远不会被击穿</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  为什么不只用互斥锁：5 万个请求排队等锁，用户体验是「转圈 3 秒」</span></span>
+<span class="line"><span>  而「返回旧值 + 异步刷新」是「立刻看到内容（价格可能晚 1 秒更新）」</span></span>
+<span class="line"><span>  → 商品详情场景下，后者体验远好于前者</span></span></code></pre></div><p><strong>大促防雪崩</strong>：</p><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>① 错峰：TTL 加随机值（基础 1 天 + random(0, 6h)），避免批量过期</span></span>
+<span class="line"><span>② 预热：大促开始前 1 小时，主动把 TOP 10 万商品的详情写入 Redis</span></span>
+<span class="line"><span>        → 避免「零点流量涌入时全部未命中」</span></span>
+<span class="line"><span>③ 兜底：本地缓存保留 60 秒旧数据，Redis 挂了仍能扛 60 秒</span></span>
+<span class="line"><span>④ 挡墙：回源请求限流（超过阈值直接返回兜底数据或排队）</span></span>
+<span class="line"><span>        → 宁可让用户看到「稍后重试」，也不能让数据库崩溃</span></span></code></pre></div><h4 id="_4-库存扣减-为什么不只靠缓存" tabindex="-1">4. 库存扣减：为什么不只靠缓存 <a class="header-anchor" href="#_4-库存扣减-为什么不只靠缓存" aria-label="Permalink to &quot;4. 库存扣减：为什么不只靠缓存&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>❌ 错误方案：库存放 Redis，用 DECR 扣减</span></span>
+<span class="line"><span>  问题：Redis 是缓存，不是存储</span></span>
+<span class="line"><span>  ① Redis 宕机/主从切换 → 未同步的扣减丢失 → **超卖**</span></span>
+<span class="line"><span>  ② 缓存没有事务，扣减成功但订单创建失败 → 库存回不来 → **少卖**</span></span>
+<span class="line"><span>  ③ 缓存与数据库不一致 → 对账时发现「Redis 里的才是真的」→ 数据漂移</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>✅ 正确方案：数据库扣减 + 缓存加速读</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  方案 A（严谨，推荐）：</span></span>
+<span class="line"><span>    UPDATE sku_stock</span></span>
+<span class="line"><span>    SET stock = stock - 1</span></span>
+<span class="line"><span>    WHERE sku_id = ? AND stock &gt;= 1;</span></span>
+<span class="line"><span>    -- 关键：WHERE 条件带 stock &gt;= 1，由数据库的行锁保证原子性</span></span>
+<span class="line"><span>    -- 返回影响行数 = 1 表示扣减成功，= 0 表示库存不足</span></span>
+<span class="line"><span>    → 不超卖（数据库行锁 + 条件更新），不需要额外的分布式锁</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  方案 B（高并发优化）：</span></span>
+<span class="line"><span>    ① 大促前把库存「分段」：1 万件库存分成 100 段，每段 100 件</span></span>
+<span class="line"><span>    ② 每段一个缓存 key，请求随机选一段扣减 → 把热点行锁打散成 100 个</span></span>
+<span class="line"><span>    ③ 某段扣完就换下一段</span></span>
+<span class="line"><span>    → 把单行锁竞争降低 100 倍</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  方案 C（极致性能，秒杀场景）：</span></span>
+<span class="line"><span>    ① Redis 预扣减（快速失败，挡掉 99% 的无效请求）</span></span>
+<span class="line"><span>    ② 扣减成功的请求发到 MQ，异步创建订单 + 数据库最终扣减</span></span>
+<span class="line"><span>    ③ 数据库是真相源，Redis 只是「快速过滤器」</span></span>
+<span class="line"><span>    → 注意：这引入了最终一致，需要幂等和对账机制</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  通用原则：</span></span>
+<span class="line"><span>    **库存是强一致数据，真相源必须在数据库。**</span></span>
+<span class="line"><span>    缓存可以用来加速读、快速失败、预扣减，但不能作为最终依据。</span></span>
+<span class="line"><span>    缓存不一致 = 超卖 = 资损。</span></span></code></pre></div><h4 id="_5-大促预案-5-万-→-50-万-qps-10-倍" tabindex="-1">5. 大促预案（5 万 → 50 万 QPS，10 倍） <a class="header-anchor" href="#_5-大促预案-5-万-→-50-万-qps-10-倍" aria-label="Permalink to &quot;5. 大促预案（5 万 → 50 万 QPS，10 倍）&quot;">​</a></h4><div class="language-text vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">text</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>【T-7 天】压测与扩容</span></span>
+<span class="line"><span>  ① 全链路压测，摸清单机容量（不要用「网上查的经验值」）</span></span>
+<span class="line"><span>  ② 按压测结果扩容应用服务器到 184 台（提前申请资源，云厂商有大促配额限制！）</span></span>
+<span class="line"><span>  ③ 数据库连接池、线程池参数按新并发数调整</span></span>
+<span class="line"><span>     并发数 = QPS × RT = 50 万 × 0.02 = 10,000 个在途请求</span></span>
+<span class="line"><span>     → 连接池要配到能承受 1 万并发，否则排队成为瓶颈</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>【T-3 天】缓存预热与降级演练</span></span>
+<span class="line"><span>  ① 预热 TOP 10 万商品到 Redis</span></span>
+<span class="line"><span>  ② 演练降级开关：关掉推荐模块、评论模块，只保留核心商品信息</span></span>
+<span class="line"><span>  ③ 确认每个降级开关真的能一键生效（演练过才算数）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>【T-1 天】限流配置与监控</span></span>
+<span class="line"><span>  ① 配置限流阈值：单机 3000 QPS，超过就快速失败（而不是排队）</span></span>
+<span class="line"><span>  ② 监控大盘：QPS、RT 分位、缓存命中率、Redis 内存、DB 连接数、MQ lag</span></span>
+<span class="line"><span>  ③ 值班表 + 应急预案文档（谁负责哪个开关、什么指标触发什么动作）</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>【大促当天】</span></span>
+<span class="line"><span>  ① 零点前 30 分钟：确认扩容到位、预热完成、监控正常</span></span>
+<span class="line"><span>  ② 零点：观察 QPS 爬坡曲线，盯命中率（跌破 90% 立刻排查）</span></span>
+<span class="line"><span>  ③ 分级降级（按顺序）：</span></span>
+<span class="line"><span>     一级：关推荐、关评论、关个性化</span></span>
+<span class="line"><span>     二级：商品详情只返回核心字段（砍掉详情大图、规格参数）</span></span>
+<span class="line"><span>     三级：返回静态兜底页（提前渲染好的商品快照）</span></span>
+<span class="line"><span>     → 每级降级都要能扛住 2 倍流量</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>【T+1 天】缩容与复盘</span></span>
+<span class="line"><span>  ① 逐步缩容（不要一刀切，观察 24 小时）</span></span>
+<span class="line"><span>  ② 复盘：实际峰值 vs 估算、瓶颈在哪、哪些预案没生效</span></span>
+<span class="line"><span>  ③ 把真实数据回填到估算公式，校准「人均请求数 / 峰值系数」等假设</span></span></code></pre></div><h4 id="评分要点-共-10-分-≥7-分合格-9" tabindex="-1">评分要点（共 10 分，≥7 分合格） <a class="header-anchor" href="#评分要点-共-10-分-≥7-分合格-9" aria-label="Permalink to &quot;评分要点（共 10 分，≥7 分合格）&quot;">​</a></h4><ul><li>[ ] <strong>2 分</strong>：容量估算完整（存储 500 GB 分片、图片带宽 8 Tbps 必须靠 CDN、机器数有算式）</li><li>[ ] <strong>2 分</strong>：架构图标注了每个组件的作用（CDN / WAF / L4 / L7 / 应用 / 三级缓存 / DB / ES）</li><li>[ ] <strong>2 分</strong>：三级缓存设计合理（本地放 TOP1000、Redis 放全量热点、DB 是真相源），热点 key 用「永不过期 + 异步刷新」而非单纯加锁</li><li>[ ] <strong>2 分</strong>：库存扣减用<strong>数据库条件更新</strong>（<code>WHERE stock &gt;= 1</code>），且明确论证了「不能只靠 Redis」（超卖/少卖/数据漂移）</li><li>[ ] <strong>2 分</strong>：大促预案有时间线（T-7 压测扩容 / T-3 预热演练 / T-1 限流监控 / 当天分级降级 / T+1 复盘）</li><li>[ ] 加分：提到「并发数 = QPS × RT」决定连接池大小；提到本地缓存更新用消息广播失效</li><li>[ ] 加分：提到库存分段（把单行锁打散 100 倍）</li><li>[ ] 扣分项：库存只放 Redis 且认为足够 → 直接扣 3 分</li><li>[ ] 扣分项：大促只写「扩容 + 加缓存」没有降级预案 → 扣 2 分</li></ul></details><hr><h2 id="通关自检" tabindex="-1">通关自检 <a class="header-anchor" href="#通关自检" aria-label="Permalink to &quot;通关自检&quot;">​</a></h2><p>对照 <a href="./../levels">levels.md</a> 的 L2 晋升标准，10 题全部独立写完后，你应该能不假思索地回答：</p><ul><li>[ ] <strong>L4 / L7 怎么选、LB 自身怎么高可用</strong> → 题目 1</li><li>[ ] <strong>健康检查该查什么</strong>（以及为什么不能查数据库）→ 题目 2</li><li>[ ] <strong>会话保持是补丁、无状态化是根治</strong> → 题目 3</li><li>[ ] <strong>MQ 的三大收益与代价、分区键与幂等</strong> → 题目 4、5</li><li>[ ] <strong>Cache-Aside 与「先更新库再删缓存」、穿透/击穿/雪崩</strong> → 题目 6、7</li><li>[ ] <strong>分片键怎么选、全局 ID 用什么、分片前该先做什么</strong> → 题目 8</li><li>[ ] <strong>hash 文件名 + 长 TTL 为什么是最佳实践</strong> → 题目 9</li><li>[ ] <strong>能把五个组件串起来设计一个真实系统</strong>，且每个决策都写明代价 → 题目 10</li></ul>`,90)])])}const k=a(i,[["render",e]]);export{g as __pageData,k as default};
